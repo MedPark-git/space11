@@ -1,1 +1,1 @@
-web: sh -c 'rm -f "$MEDPARK_DATA_DIR/runtime/medpark_global_maps.db.restore-upload-wal" "$MEDPARK_DATA_DIR/runtime/medpark_global_maps.db.restore-upload-shm"; exec gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 8 --timeout 240 --access-logfile - --error-logfile - app:app'
+web: gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 8 --timeout 240 --access-logfile - --error-logfile - app:app
