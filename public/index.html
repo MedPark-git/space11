@@ -1,0 +1,1283 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#073b4c">
+  <title>MedPark Global MAPS</title>
+  <link rel="stylesheet" href="/assets/style.css?v=2026.09.09.monthly-fcst-usability-v1">
+  <link rel="stylesheet" href="/assets/monthly-sales-fcst.css?v=2026.09.09.monthly-fcst-usability-v1">
+  <link rel="stylesheet" href="/assets/customer-master.css?v=2026.09.16.customer-commercial-context-v2">
+  <link rel="stylesheet" href="/assets/searchable-picker.css?v=2026.09.16.customer-commercial-context-v2">
+  <link rel="stylesheet" href="/assets/commercial-context.css?v=2026.09.16.customer-commercial-context-v2">
+  <link rel="stylesheet" href="/assets/major-tasks.css?v=2026.09.15.major-task-collaboration-recursive-hierarchy-v1">
+</head>
+<body>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <main id="authScreen" class="auth-screen hidden">
+    <section class="auth-brand">
+      <div class="brand-mark">M</div>
+      <p class="eyebrow">MEDPARK GLOBAL BUSINESS</p>
+      <h1>Global MAPS</h1>
+      <p class="auth-lead">해외사업부의 매출, 거래처, 파이프라인, 업무와 변경 이력을 한 곳에서 관리합니다.</p>
+      <div class="auth-features">
+        <span>Amaranth ERP 연동</span>
+        <span>담당자별 권한</span>
+        <span>영구 변경이력</span>
+      </div>
+    </section>
+    <section class="auth-card">
+      <div class="auth-tabs" role="tablist">
+        <button class="auth-tab active" data-auth-tab="login" type="button">로그인</button>
+        <button class="auth-tab" data-auth-tab="register" type="button">사용자 등록</button>
+      </div>
+      <form id="loginForm" class="auth-form">
+        <div>
+          <p class="eyebrow dark">SECURE ACCESS</p>
+          <h2>업무 공간 로그인</h2>
+          <p class="muted">승인된 임직원 계정으로 로그인하세요.</p>
+        </div>
+        <label>아이디<input name="username" autocomplete="username" required placeholder="아이디"></label>
+        <label>비밀번호<input name="password" type="password" autocomplete="current-password" required placeholder="비밀번호"></label>
+        <button class="btn primary wide" type="submit">로그인</button>
+        <p id="loginError" class="form-error"></p>
+      </form>
+      <form id="registerForm" class="auth-form hidden">
+        <div>
+          <p class="eyebrow dark">ACCOUNT REQUEST</p>
+          <h2>사용자 등록 신청</h2>
+          <p class="muted">등록 후 관리자의 승인이 필요합니다.</p>
+        </div>
+        <div class="form-grid two">
+          <label>아이디<input name="username" required minlength="2" maxlength="40" placeholder="한글·영문·숫자 2자 이상"><small class="field-hint">예: 홍길동, honggildong</small></label>
+          <label>이름<input name="display_name" required maxlength="50" placeholder="홍길동"></label>
+        </div>
+        <label>이메일<input name="email" type="email" autocomplete="email" placeholder="name@medpark.net"></label>
+        <label>비밀번호<input name="password" type="password" autocomplete="new-password" minlength="10" required placeholder="영문+숫자 포함 10자 이상"></label>
+        <label>비밀번호 확인<input name="password_confirm" type="password" autocomplete="new-password" minlength="10" required placeholder="비밀번호 다시 입력"></label>
+        <button class="btn primary wide" type="submit">등록 신청</button>
+        <p id="registerMessage" class="form-message"></p>
+      </form>
+      <button id="publicBackBtn" class="btn outline wide auth-back hidden" type="button" aria-hidden="true" tabindex="-1">로그인 화면 유지</button>
+    </section>
+  </main>
+
+  <div id="appShell" class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-mark small">M</div>
+        <div><strong>Global MAPS</strong><span>MedPark Overseas</span></div>
+      </div>
+      <nav id="mainNav" class="nav-list" aria-label="주 메뉴">
+        <button class="nav-item active" data-view="overview"><span>⌂</span>종합 현황</button>
+        <button class="nav-item" data-view="daily"><span>☀</span>오늘·아침회의</button>
+        <button class="nav-item" data-view="monthly_sales_fcst"><span>▧</span>월별 매출 FCST</button>
+        <button class="nav-item" data-view="sales"><span>↗</span>월별 매출</button>
+        <button class="nav-item" data-view="account"><span>◎</span>거래처 마스터</button>
+        <button class="nav-item" data-view="order"><span>▤</span>수주·출고 진행</button>
+        <button class="nav-item" data-view="cash_plan"><span>₩</span>자금계획</button>
+        <button class="nav-item" data-view="receivable"><span>◎</span>미수금·채권</button>
+        <button class="nav-item" data-view="task"><span>✓</span>주요 업무</button>
+        <button class="nav-item" data-view="promotion"><span>★</span>프로모션</button>
+        <button class="nav-item hidden" data-view="users"><span>♙</span>사용자 관리</button>
+        <button class="nav-item" data-view="history"><span>◷</span>변경 이력</button>
+      </nav>
+      <div class="sidebar-foot">
+        <span id="erpDot" class="status-dot"></span>
+        <div><strong>Amaranth ERP</strong><small id="erpSidebarStatus">상태 확인 중</small></div>
+      </div>
+    </aside>
+
+    <div class="main-area">
+      <header class="topbar">
+        <div>
+          <button id="menuToggle" class="icon-btn mobile-only" type="button" aria-label="메뉴 열기">☰</button>
+          <p id="pageEyebrow" class="eyebrow dark">GLOBAL BUSINESS CONTROL TOWER</p>
+          <h1 id="pageTitle">종합 현황</h1>
+        </div>
+        <div class="top-actions">
+          <div class="user-chip"><span id="userInitial">공</span><div><strong id="userName">공개 조회</strong><small id="userRole">READ ONLY</small></div></div>
+          <button id="publicRegisterBtn" class="btn outline" type="button">사용자 등록</button>
+          <button id="manageLoginBtn" class="btn primary" type="button">로그인</button>
+          <button id="passwordBtn" class="btn subtle hidden" type="button">내 비밀번호 변경</button>
+          <button id="logoutBtn" class="btn outline hidden" type="button">로그아웃</button>
+        </div>
+      </header>
+
+      <main class="content">
+        <section id="view-overview" class="view active">
+          <div class="hero-strip">
+            <div><p class="eyebrow">2026 GLOBAL OPERATIONS</p><h2>해외사업부 실행 현황</h2><p>ERP 실매출과 담당자 업무 데이터를 같은 기준으로 확인합니다.</p></div>
+            <div class="hero-date"><span>DATA STANDARD</span><strong id="todayLabel">—</strong></div>
+          </div>
+          <div id="fxStrip" class="fx-strip"><div class="empty-state">오늘 기준환율을 불러오는 중입니다.</div></div>
+          <div id="targetPerformanceGrid" class="target-performance-grid"></div>
+          <div id="kpiGrid" class="kpi-grid"></div>
+          <div class="dashboard-grid">
+            <article class="panel span-4 share-panel"><div class="panel-head"><div><p class="eyebrow dark">REGIONAL SALES MIX</p><h3>대륙별 점유율</h3><p class="panel-description">2026 ERP 해외 출고 공급가 · 8개 표준권역</p></div></div><div id="regionShareChart" class="share-chart"></div></article>
+            <article class="panel span-4 share-panel"><div class="panel-head"><div><p class="eyebrow dark">MODEL SALES MIX</p><h3>모델별 점유율</h3><p class="panel-description">2026 ERP 해외 출고 공급가 · 제품 모델군</p></div></div><div id="modelShareChart" class="share-chart"></div></article>
+            <article class="panel span-4 share-panel"><div class="panel-head"><div><p class="eyebrow dark">BUSINESS SALES MIX</p><h3>사업별 점유율</h3><p class="panel-description">2026 ERP 해외 출고 공급가 · 덴탈·메디컬·에스테틱</p></div></div><div id="businessShareChart" class="share-chart"></div></article>
+            <article class="panel span-12"><div class="panel-head"><div><p class="eyebrow dark">TOP 20 ACCOUNTS</p><h3>2026 거래처 매출 TOP 20</h3></div><button class="text-btn" data-jump="sales" type="button">매출 상세 →</button></div><div id="overviewTopPartners" class="overview-top-partners"></div></article>
+            <article class="panel span-12"><div class="panel-head"><div><p class="eyebrow dark">COUNTRY COVERAGE</p><h3>활동국가 / 타겟국가</h3></div></div><div id="countryCoverage" class="country-coverage"></div></article>
+            <article class="panel span-12 global-map-panel">
+              <div class="panel-head map-panel-head">
+                <div><p class="eyebrow dark">GLOBAL MARKET ACTION MAP</p><h3>국가별 거래처·FCST·ERP 확정매출</h3><p class="panel-description">국가를 누르면 해당 거래처, 영업추진, FCST와 출고매출이 열립니다.</p></div>
+                <div class="map-controls">
+                  <label><span>기준월</span><input id="mapMonth" type="month" aria-label="지도 기준월"></label>
+                  <label><span>사업분야</span><select id="mapSegment" aria-label="지도 사업분야"><option value="all">전체</option><option value="dental">덴탈</option><option value="medical">메디컬</option><option value="aesthetic">에스테틱</option></select></label>
+                </div>
+              </div>
+              <div id="mapSummary" class="map-summary-strip"></div>
+              <div class="global-map-layout">
+                <div class="world-map-column">
+                  <div id="worldMap" class="world-map" aria-label="국가별 해외사업 현황 지도"><div class="empty-state">세계지도를 불러오는 중입니다.</div></div>
+                  <div class="map-legend" aria-label="지도 범례"><span><i class="actual"></i>ERP 출고 확정</span><span><i class="forecast"></i>FCST 진행</span><span><i class="pipeline"></i>영업추진</span><span><i class="account"></i>거래처 등록</span></div>
+                </div>
+                <aside id="mapCountryDetail" class="map-country-detail"><div class="map-detail-empty"><strong>국가를 선택하세요.</strong><span>지도의 색상 국가나 표시점을 누르면 상세 내역이 나옵니다.</span></div></aside>
+              </div>
+              <div id="mapDataQuality" class="map-data-quality"></div>
+            </article>
+            <article class="panel span-12 forecast-overview-panel">
+              <div class="panel-head"><div><p class="eyebrow dark">MONTHLY FORECAST → ERP ACTUAL</p><h3 id="overviewForecastTitle">월별 FCST 진행</h3><p class="panel-description">입력 FCST 전체금액과 단계별 가중금액, ERP 확정매출을 구분합니다.</p></div><button class="text-btn" data-jump="monthly_sales_fcst" type="button">월별 매출 FCST →</button></div>
+              <div id="overviewForecastKpis" class="forecast-hero-grid"></div>
+              <div class="forecast-overview-lower"><div id="overviewForecastStages" class="forecast-stage-strip"></div><div id="overviewForecastRounds" class="round-comparison"></div></div>
+            </article>
+            <article class="panel span-12 morning-preview-panel">
+              <div class="panel-head"><div><p class="eyebrow dark">DAILY EXECUTION BRIEF</p><h3>오늘 아침회의 핵심 아젠다</h3></div><button class="text-btn" data-jump="daily" type="button">회의 화면 열기 →</button></div>
+              <div id="morningPreview" class="morning-preview"></div>
+            </article>
+            <article class="panel span-12 finance-overview-panel">
+              <div class="panel-head"><div><p class="eyebrow dark">CASH · RECEIVABLE · PROMOTION CONTROL</p><h3>자금·채권·프로모션 실행 점검</h3><p class="panel-description">이번 달 예상 수금과 지출, 연체채권, 프로모션 달성현황을 같은 기준으로 점검합니다.</p></div></div>
+              <div id="financeOverview" class="finance-overview-grid"></div>
+            </article>
+            <article class="panel span-8">
+              <div class="panel-head"><div><p class="eyebrow dark">ERP EXPORT SALES TREND</p><h3>월별 해외 출고 매출</h3></div><button class="text-btn" data-jump="sales" type="button">상세 보기 →</button></div>
+              <div id="overviewSalesChart" class="chart-area empty-state">ERP 데이터를 불러오는 중입니다.</div>
+            </article>
+            <article class="panel span-4">
+              <div class="panel-head"><div><p class="eyebrow dark">MARKET COVERAGE</p><h3>권역별 거래처</h3></div></div>
+              <div id="regionList" class="region-list"></div>
+            </article>
+            <article class="panel span-12">
+              <div class="panel-head"><div><p class="eyebrow dark">ACTION BOARD</p><h3>주요업무</h3></div><button class="text-btn" data-jump="task" type="button">업무 관리 →</button></div>
+              <div class="table-wrap"><table class="overview-task-table"><thead><tr><th>필드</th><th>국가</th><th>타이틀</th><th>진행상황</th><th>담당자</th><th>목표일</th><th>기타</th></tr></thead><tbody id="priorityTasks"></tbody></table></div>
+            </article>
+            <article class="panel span-12">
+              <div class="panel-head"><div><p class="eyebrow dark">PIPELINE</p><h3>핵심 기회</h3></div></div>
+              <div id="priorityPipeline" class="compact-list"></div>
+            </article>
+          </div>
+        </section>
+
+        <section id="view-forecast" class="view">
+          <div class="section-head">
+            <div><p class="eyebrow dark">FORECAST CONTROL · 1ST / 2ND / 3RD CLOSE</p><h2>월별 FCST</h2><p>25일 차월 FCST부터 1·2·3차 가마감, 이월과 ERP 확정매출까지 한 흐름으로 관리합니다.</p></div>
+            <div class="inline-actions forecast-controls">
+              <input id="forecastMonth" type="month" aria-label="FCST 대상월">
+              <select id="forecastRound" aria-label="가마감 차수"><option value="latest">최신 차수</option><option value="1">1차</option><option value="2">2차</option><option value="3">3차</option></select>
+              <button id="forecastCycleBtn" class="btn outline permission-manage hidden" type="button">환율·차수 설정</button>
+              <button id="forecastCopyBtn" class="btn subtle permission-manage hidden" type="button">다음 차수 복사</button>
+              <button id="forecastAddBtn" class="btn primary permission-edit hidden" type="button">+ FCST 등록</button>
+            </div>
+          </div>
+          <div id="forecastDefinition" class="definition-banner"></div>
+          <div id="forecastCountryFilterChip" class="active-filter hidden"></div>
+          <div id="forecastKpis" class="forecast-hero-grid"></div>
+          <div class="dashboard-grid forecast-grid">
+            <article class="panel span-8"><div class="panel-head"><div><p class="eyebrow dark">CONFIDENCE MIX</p><h3>영업단계별 FCST</h3></div></div><div id="forecastStageCards" class="forecast-stage-cards"></div></article>
+            <article class="panel span-4"><div class="panel-head"><div><p class="eyebrow dark">ROUND SNAPSHOTS</p><h3>1·2·3차 변동</h3></div></div><div id="forecastRoundComparison" class="round-comparison vertical"></div></article>
+            <article class="panel span-12"><div class="panel-head"><div><p class="eyebrow dark">FORECAST DETAIL</p><h3 id="forecastTableTitle">FCST 상세</h3></div><span id="forecastItemCount" class="count-label"></span></div><div class="table-wrap"><table><thead><tr><th>거래처 / 품목</th><th>사업분야</th><th>단계·확률</th><th>외화금액</th><th>기준환율</th><th>원화 환산</th><th>예상 출고일</th><th>출처</th><th>담당자</th><th>관리</th></tr></thead><tbody id="forecastTableBody"></tbody></table></div></article>
+          </div>
+        </section>
+
+        <section id="view-forecast_rounds" class="view">
+          <div class="section-head">
+            <div><p class="eyebrow dark">FORECAST ROUND WORKFLOW · INPUT / REVIEW / CLOSE</p><h2>FCST 차수 업무관리</h2><p>미정·1·2·3차의 매출자료와 일자별 환율을 입력하고, 체크리스트 검토 후 차수별 확정·잠금합니다.</p></div>
+            <div class="inline-actions forecast-round-controls">
+              <label>대상월<input id="forecastRoundMonth" type="month" value="2026-08" aria-label="FCST 차수 업무 대상월"></label>
+              <button id="forecastRoundInitializeBtn" class="btn outline permission-manage hidden" type="button">해당 월 업무 시작</button>
+              <span class="review-badge">입력 → 검토 → 확정</span>
+            </div>
+          </div>
+          <div id="forecastRoundSource" class="definition-banner forecast-round-source"></div>
+          <div id="forecastRoundCards" class="forecast-round-card-grid" role="tablist" aria-label="FCST 차수 선택"></div>
+          <div id="forecastRoundKpis" class="forecast-hero-grid"></div>
+          <form id="forecastRoundWorkflowForm" class="forecast-round-workflow">
+            <div class="forecast-round-lockbar"><div id="forecastRoundLockState"></div><div class="inline-actions"><button id="forecastRoundCopyNextBtn" class="btn subtle hidden" type="button">다음 차수로 이관</button><button id="forecastRoundReopenBtn" class="btn outline hidden" type="button">확정 재개방</button><button id="forecastRoundSaveBtn" class="btn outline hidden" type="submit">임시 저장</button><button id="forecastRoundConfirmBtn" class="btn primary hidden" type="button">차수 확정·잠금</button></div></div>
+            <div class="dashboard-grid forecast-round-detail-grid">
+              <article class="panel span-12 forecast-close-dashboard">
+                <div class="panel-head forecast-close-head"><div><p class="eyebrow dark">MONTH-END CLOSING OVERVIEW</p><h3>해외사업부 마감 현황</h3><p class="panel-description">선택 차수의 상세현황 또는 미정부터 3차까지의 전체 변동을 마감회의 기준으로 요약합니다.</p></div><div class="forecast-close-filters"><label>조회범위<select id="forecastCloseScope"><option value="selected">선택 차수 상세</option><option value="all">미정~3차 전체 비교</option></select></label><label>사업분야<select id="forecastCloseBusiness"><option value="">전체 사업분야</option><option value="dental">덴탈</option><option value="medical">메디컬</option><option value="aesthetic">에스테틱</option></select></label></div></div>
+                <div id="forecastCloseKpis" class="forecast-close-kpis"></div>
+                <div id="forecastCloseAll" class="forecast-close-all hidden"></div>
+                <div id="forecastCloseSelected">
+                <div class="forecast-close-grid">
+                  <section class="forecast-close-section"><div class="forecast-close-title"><strong>매출 확보 구조</strong><span>최소 · 현재 · 최대</span></div><div id="forecastCloseScenario"></div></section>
+                  <section class="forecast-close-section"><div class="forecast-close-title"><strong>업무 진행상태</strong><span>건수 · 당월금액</span></div><div id="forecastCloseProgress"></div></section>
+                  <section class="forecast-close-section"><div class="forecast-close-title"><strong>차수별 변동</strong><span>미정 → 1차 → 2차 → 3차</span></div><div id="forecastCloseRounds"></div></section>
+                  <section class="forecast-close-section"><div class="forecast-close-title"><strong>추가매출 관리</strong><span>목표 · 확보 · 잔여</span></div><div id="forecastCloseInitiatives"></div></section>
+                </div>
+                <div class="forecast-close-tables">
+                  <section><div class="forecast-close-title"><strong>주요 거래처</strong><span>당월 확보금액 TOP 5</span></div><div class="table-wrap"><table class="forecast-close-table"><thead><tr><th>국가 / 거래처</th><th>사업분야</th><th>진행상태</th><th>당월</th><th>목표일</th></tr></thead><tbody id="forecastCloseAccounts"></tbody></table></div></section>
+                  <section><div class="forecast-close-title"><strong>주요 변동 및 후속조치</strong><span>최근 업데이트 기준</span></div><div id="forecastCloseChanges" class="forecast-close-changes"></div></section>
+                </div>
+                </div>
+              </article>
+              <article class="panel span-12 forecast-detail-workbench">
+                <div class="panel-head"><div><p class="eyebrow dark">WORKBOOK DETAIL · STANDALONE</p><h3>상세 FCST · 다차원 조회</h3><p class="panel-description">업로드 엑셀의 상세행을 차수·품목·국가·거래처 기준으로 조회하고 직접 추가·수정합니다.</p></div><button id="forecastDetailAddBtn" class="btn primary hidden" type="button">+ 상세자료 추가</button></div>
+                <div class="forecast-detail-source-note"><strong>자료 기준: 업로드 엑셀</strong><span>기존 메뉴·ERP 미연동 · 향후 협의 후 연결 가능</span></div>
+                <div class="forecast-detail-controls">
+                  <label>조회 기준<select id="forecastDetailDimension"><option value="round">차수별</option><option value="item">품목별</option><option value="country">국가별</option><option value="account">거래처별</option></select></label>
+                  <label>사업분야<select id="forecastDetailBusiness"><option value="">전체 사업분야</option><option value="aesthetic">에스테틱</option><option value="medical">메디컬</option><option value="dental">덴탈</option></select></label>
+                  <label>진행구분<select id="forecastDetailStage"><option value="">전체 진행구분</option><option value="confirmed">확정</option><option value="scheduled">예정</option><option value="pipeline">추진</option><option value="undecided">미정</option></select></label>
+                  <label class="forecast-detail-search">검색<input id="forecastDetailSearch" type="search" placeholder="품목·국가·거래처·담당자"></label>
+                </div>
+                <div id="forecastDetailKpis" class="forecast-detail-kpis"></div>
+                <div class="forecast-detail-layout">
+                  <div>
+                    <div class="panel-subhead"><strong id="forecastDetailGroupTitle">차수별 요약</strong><span>행을 선택하면 해당 현황만 표시합니다.</span></div>
+                    <div class="table-wrap"><table class="forecast-detail-group-table"><thead><tr><th>구분</th><th>건수</th><th>확정·예정</th><th>추진</th><th>미정</th><th>상세 합계</th><th>차월</th></tr></thead><tbody id="forecastDetailGroupBody"></tbody></table></div>
+                  </div>
+                  <aside id="forecastDetailInsight" class="forecast-detail-insight"></aside>
+                </div>
+                <div class="panel-subhead forecast-detail-list-head"><strong id="forecastDetailListTitle">상세자료</strong><span id="forecastDetailCount"></span></div>
+                <div class="table-wrap"><table class="forecast-detail-table"><thead><tr><th>구분</th><th>진행상태</th><th>사업분야</th><th>국가 / 거래처</th><th>품목 / 분류</th><th>담당·시점</th><th>당월 상세</th><th>차월</th><th>업데이트 일자</th><th>관리</th></tr></thead><tbody id="forecastDetailBody"></tbody></table></div>
+              </article>
+              <article class="panel span-12 forecast-round-settings">
+                <div class="panel-head"><div><p class="eyebrow dark">DAILY EXCHANGE RATE</p><h3>기준일·적용 환율</h3><p class="panel-description">차수에서 실제 사용한 기준일과 통화별 원화 환율을 입력합니다.</p></div><span id="forecastRoundRate" class="count-label"></span></div>
+                <div class="forecast-round-fx-grid">
+                  <label>기준일<input id="forecastRoundAsOfDate" name="as_of_date" type="date"></label>
+                  <label>USD / KRW<input id="forecastRoundUsd" name="USD" type="number" min="0" step="0.01" inputmode="decimal"></label>
+                  <label>EUR / KRW<input id="forecastRoundEur" name="EUR" type="number" min="0" step="0.01" inputmode="decimal"></label>
+                  <label>JPY / KRW<input id="forecastRoundJpy" name="JPY" type="number" min="0" step="0.0001" inputmode="decimal"></label>
+                  <label>CNY / KRW<input id="forecastRoundCny" name="CNY" type="number" min="0" step="0.01" inputmode="decimal"></label>
+                </div>
+                <label class="forecast-round-notes-input">차수 메모<textarea id="forecastRoundNotes" name="notes" rows="2" maxlength="2000" placeholder="변동 사유, 미확정 항목, 실무진 공유사항을 입력하세요."></textarea></label>
+              </article>
+              <article class="panel span-8">
+                <div class="panel-head"><div><p class="eyebrow dark">BUSINESS UNIT INPUT</p><h3 id="forecastRoundBusinessTitle">사업분야별 입력·현황</h3></div><span class="count-label">입력 단위: 백만원</span></div>
+                <div class="table-wrap"><table class="forecast-round-business-table forecast-round-input-table"><thead><tr><th>사업분야</th><th>사업계획</th><th>월초 FCST</th><th>1차 예상</th><th>전월 이월</th><th>당월 확정·예정</th><th>당월 추진</th><th>예상매출</th><th>차월 확정·예정</th><th>차월 추진</th><th>계획 대비</th></tr></thead><tbody id="forecastRoundBusinessBody"></tbody></table></div>
+              </article>
+              <article class="panel span-4">
+                <div class="panel-head"><div><p class="eyebrow dark">CLOSE CHECKLIST</p><h3>차수 확정 체크리스트</h3><p class="panel-description">필수 항목을 모두 확인해야 확정할 수 있습니다.</p></div></div>
+                <div id="forecastRoundChecklist" class="forecast-round-checklist"></div>
+              </article>
+              <article class="panel span-4">
+                <div class="panel-head"><div><p class="eyebrow dark">SALES COMPOSITION</p><h3>선택 차수 구성</h3></div></div>
+                <div id="forecastRoundComposition" class="forecast-round-composition"></div>
+              </article>
+              <article class="panel span-8">
+                <div class="panel-head"><div><p class="eyebrow dark">ROUND-OVER-ROUND COMPARISON</p><h3>미정·1·2·3차 핵심지표 비교</h3></div><span class="count-label">단위: 백만원</span></div>
+                <div class="table-wrap"><table class="forecast-round-comparison-table"><thead><tr><th>지표</th><th>미정</th><th>1차</th><th>2차</th><th>3차</th></tr></thead><tbody id="forecastRoundComparisonBody"></tbody></table></div>
+              </article>
+              <article class="panel span-12 forecast-round-notes">
+                <div class="panel-head"><div><p class="eyebrow dark">SOURCE CHECK</p><h3>초기 엑셀자료 확인 필요사항</h3></div></div>
+                <ul id="forecastRoundQualityNotes"></ul>
+              </article>
+            </div>
+            <p id="forecastRoundActionMessage" class="action-message" aria-live="polite"></p>
+          </form>
+        </section>
+
+        <section id="view-monthly_sales_fcst" class="view monthly-sales-fcst-view">
+          <div class="section-head monthly-fcst-head">
+            <div><p class="eyebrow dark">MONTHLY SALES · FORECAST · CARRYOVER</p><h2>월별 매출 FCST</h2><p>개별 매출 건의 확정·예정·추진·미정, 매출분리와 차월을 하나의 원장으로 관리합니다.</p></div>
+            <div class="inline-actions monthly-fcst-actions">
+              <button id="monthlyFcstTemplateBtn" class="btn outline" type="button">업로드 양식</button>
+              <button id="monthlyFcstImportBtn" class="btn outline permission-edit hidden" type="button">Excel 가져오기</button>
+              <button id="monthlyFcstExportBtn" class="btn outline" type="button">Excel 내보내기</button>
+              <button id="monthlyFcstCustomerLinksBtn" class="btn outline permission-edit hidden" type="button">거래처 연결 정리 <span id="monthlyFcstCustomerLinksCount"></span></button>
+              <button id="monthlyFcstSettingsBtn" class="btn subtle hidden" type="button">월별 설정</button>
+              <button id="monthlyFcstAddBtn" class="btn primary permission-edit hidden" type="button">+ 매출 등록</button>
+            </div>
+          </div>
+
+          <div class="monthly-fcst-tabs" role="tablist" aria-label="월별 매출 FCST 조회구분">
+            <button class="active" data-monthly-fcst-tab="current" type="button">당월 예상매출</button>
+            <button data-monthly-fcst-tab="next" type="button">다음 달 FCST</button>
+          </div>
+
+          <div class="monthly-fcst-toolbar monthly-fcst-toolbar-compact">
+            <label class="monthly-fcst-target-month"><span>매출 대상월</span><input id="monthlyFcstTargetMonth" type="month" aria-label="월별 매출 FCST 매출 대상월"></label>
+            <label>조회 기준일<input id="monthlyFcstDate" type="date" aria-label="월별 매출 FCST 조회 기준일"></label>
+            <button id="monthlyFcstGlobalFilterBtn" class="btn outline" type="button">필터 <span id="monthlyFcstGlobalFilterState">선택</span></button>
+            <button id="monthlyFcstCurrentViewBtn" class="btn subtle hidden" type="button">오늘 기준 당월 보기</button>
+          </div>
+
+          <div id="monthlyFcstReadOnlyNotice" class="definition-banner hidden"></div>
+          <div id="monthlyFcstSheetStatus" class="monthly-fcst-sync"></div>
+          <div id="monthlyFcstErpFreshness" class="monthly-fcst-erp-freshness"></div>
+          <div id="monthlyFcstRateBar" class="monthly-fcst-rate-bar" aria-label="월별 기준환율">
+            <div class="monthly-fcst-rate-title"><span>월별 기준환율</span><strong id="monthlyFcstRateMonth"></strong><small>매출 등록 시 선택한 환종에 자동 적용</small></div>
+            <div id="monthlyFcstRateValues" class="monthly-fcst-rate-values"></div>
+          </div>
+          <div id="monthlyFcstKpis" class="monthly-fcst-kpis"></div>
+
+          <div class="dashboard-grid monthly-fcst-dashboard">
+            <article class="panel span-12 monthly-fcst-live-panel">
+              <div class="panel-head"><div><p class="eyebrow dark">TODAY SALES STATUS</p><h3 id="monthlyFcstLiveTitle">오늘 기준 예상매출 현황</h3><p id="monthlyFcstLiveDescription" class="panel-description">선택한 매출 대상월의 현재 기록 상태를 기준으로 집계합니다.</p></div><span id="monthlyFcstLiveMeta" class="monthly-fcst-live-meta"></span></div>
+              <div id="monthlyFcstLiveSummary" class="monthly-fcst-live-summary" aria-live="polite"></div>
+            </article>
+            <article class="panel span-12">
+              <div class="panel-head"><div><p class="eyebrow dark">BUSINESS SUMMARY</p><h3>사업분야별 목표·FCST·현재 예상매출</h3><p class="panel-description">숫자를 선택하면 해당 조건의 세부 매출만 바로 확인할 수 있습니다.</p></div><div class="monthly-fcst-month-actions"><button id="monthlyFcstSubmitBtn" class="btn subtle hidden" type="button">최초 FCST 제출</button><button id="monthlyFcstMonthToggleBtn" class="btn outline hidden" type="button">월 마감</button></div></div>
+              <div class="table-wrap monthly-fcst-summary-wrap"><table class="monthly-fcst-summary-table"><thead><tr><th>사업분야</th><th>사업계획</th><th>최초 FCST</th><th>현재 FCST<br>(확정+예정+추진)</th><th>이월 유입</th><th>당월 추진</th><th>확정</th><th>예정</th><th>추진</th><th>미정</th><th>확정+예정</th><th>차월 처리</th><th>목표 대비</th><th>최초 대비</th><th>달성률</th><th>비고</th></tr></thead><tbody id="monthlyFcstSummaryBody"></tbody></table></div>
+            </article>
+            <article class="panel span-12">
+              <div class="panel-head"><div><p class="eyebrow dark">RISK & MISSING DATA</p><h3>위험·누락 알림</h3></div><span id="monthlyFcstRiskCount" class="count-label"></span></div>
+              <div id="monthlyFcstRisks" class="monthly-fcst-risk-list"></div>
+            </article>
+            <article class="panel span-12 monthly-fcst-ledger-panel">
+              <div class="panel-head"><div><p class="eyebrow dark">SALES LEDGER</p><h3>거래처별 매출 현황</h3><p class="panel-description">행을 선택하면 상세정보와 수정·이력·분리·차월 업무를 오른쪽에서 확인할 수 있습니다.</p></div></div>
+              <div id="monthlyFcstGroups" class="monthly-fcst-groups"></div>
+            </article>
+            <article class="panel span-12 monthly-fcst-round-comparison-panel">
+              <div class="panel-head"><div><p class="eyebrow dark">ROUND COMPARISON</p><h3>차수별 매출 변동 비교</h3><p class="panel-description">TODAY SALES STATUS와 동일한 항목을 차수별로 비교합니다. 증감률은 USD 기준입니다.</p></div></div>
+              <div id="monthlyFcstRoundComparison" class="monthly-fcst-round-comparison" aria-live="polite"></div>
+            </article>
+          </div>
+        </section>
+
+        <section id="view-daily" class="view">
+          <div class="section-head daily-head">
+            <div><p class="eyebrow dark">DAILY SALES & OPERATIONS HUDDLE</p><h2>오늘·아침회의</h2><p id="dailyBriefDate">오늘 해야 할 일, 미결업무와 영업 후속조치를 자동으로 모았습니다.</p></div>
+            <div class="inline-actions">
+              <button id="copyAgendaBtn" class="btn outline" type="button">아젠다 복사</button>
+              <button id="printAgendaBtn" class="btn primary" type="button">회의자료 인쇄</button>
+            </div>
+          </div>
+          <div id="dailyKpiGrid" class="kpi-grid daily-kpis"></div>
+          <div class="dashboard-grid">
+            <article class="panel span-8 agenda-sheet">
+              <div class="panel-head"><div><p class="eyebrow dark">AUTO-GENERATED AGENDA</p><h3>아침회의 진행 순서</h3></div><span class="live-badge">매일 자동 갱신</span></div>
+              <div id="morningAgenda" class="agenda-sections"></div>
+            </article>
+            <article class="panel span-4">
+              <div class="panel-head"><div><p class="eyebrow dark">QUICK ENTRY</p><h3>회의 중 바로 등록</h3></div></div>
+              <div class="quick-entry-grid permission-edit hidden">
+                <button type="button" data-quick-add="task"><b>할 일</b><span>담당·목표일 지정</span></button>
+                <button type="button" data-quick-add="activity"><b>영업 활동</b><span>연락·미팅·후속조치</span></button>
+                <button type="button" data-quick-add="order"><b>수주 진행</b><span>PO부터 출고까지</span></button>
+                <button type="button" data-quick-add="goal"><b>목표</b><span>점검일·수정목표일</span></button>
+              </div>
+              <div id="todayMeetings" class="today-meetings"></div>
+            </article>
+          </div>
+        </section>
+
+        <section id="view-sales" class="view">
+          <div class="section-head">
+            <div><p class="eyebrow dark">AMARANTH 10 · EXPORT ONLY</p><h2>해외 월별 매출</h2><p>국내·LOCAL 출고를 제외하고 T/T·L/C 등 해외 출고만 사업군별로 집계합니다.</p></div>
+            <div class="inline-actions">
+              <select id="salesSegment" aria-label="사업군 조회">
+                <option value="all">전체 해외</option>
+                <option value="dental">덴탈</option>
+                <option value="medical">메디컬</option>
+                <option value="aesthetic">에스테틱</option>
+                <option value="unclassified">미분류 확인</option>
+              </select>
+              <select id="salesYear" aria-label="조회 연도"></select>
+              <select id="salesMonth" aria-label="조회 월"><option value="all">연간 전체</option></select>
+              <button id="erpSyncBtn" class="btn primary permission-sync hidden" type="button">ERP 동기화</button>
+            </div>
+          </div>
+          <div id="erpStatusCard" class="erp-status-card"></div>
+          <div id="salesCountryFilterChip" class="active-filter hidden"></div>
+          <div id="salesSegmentCards" class="segment-kpi-grid"></div>
+          <div class="dashboard-grid">
+            <article class="panel span-8"><div class="panel-head"><div><h3>월별 ERP 저장 공급가</h3><p class="panel-description">기존 화면 호환값입니다. 공식 인식매출은 검증된 ERP 합계액과 관리구분 규칙으로 별도 계산합니다.</p></div></div><div id="salesChart" class="chart-area"></div></article>
+            <article class="panel span-4"><div class="panel-head"><h3>사업군별 해외매출</h3></div><div id="businessUnitSales" class="business-unit-list"></div></article>
+            <article class="panel span-12"><div class="panel-head"><h3 id="partnerSalesTitle">거래처별 매출 TOP 20</h3></div><div id="partnerSales" class="rank-list rank-grid"></div></article>
+            <article class="panel span-12"><div class="table-wrap"><table><thead><tr><th>월</th><th>출고 건수</th><th>품목 라인</th><th>공급가(KRW)</th><th>ERP 합계액 원문</th><th>거래통화금액(환종별)</th></tr></thead><tbody id="salesTableBody"></tbody></table></div></article>
+            <article class="panel span-12"><div class="panel-head"><div><p class="eyebrow dark">ITEM SALES DETAIL</p><h3 id="itemSalesTitle">품목별 해외매출</h3></div><span id="itemSalesCount" class="count-label"></span></div><div class="table-wrap"><table><thead><tr><th>사업분야</th><th>품목코드</th><th>품목명 / 규격</th><th>출고</th><th>수량</th><th>공급가(KRW)</th></tr></thead><tbody id="itemSalesBody"></tbody></table></div></article>
+            <article class="panel span-12"><div class="panel-head"><div><p class="eyebrow dark">SHIPMENT DETAIL</p><h3 id="shipmentDetailTitle">출고 건별 내역</h3></div></div><div class="table-wrap"><table><thead><tr><th>출고일</th><th>출고번호</th><th>거래처</th><th>결제·무역조건</th><th>품목라인</th><th>공급가(KRW)</th></tr></thead><tbody id="shipmentDetailBody"></tbody></table></div></article>
+          </div>
+        </section>
+
+        <section id="view-account-master" class="view customer-master-view">
+          <div class="section-head customer-master-head">
+            <div><p class="eyebrow dark">ERP ACCOUNT LEDGER · CUSTOMER INTELLIGENCE</p><h2>거래처 마스터</h2><p>ERP 원본정보와 담당자 관리정보를 분리해 거래 전 과정과 해외 공급국가를 관리합니다.</p></div>
+            <div class="inline-actions">
+              <button id="customerSyncHistoryBtn" class="btn outline" type="button">동기화 상세이력</button>
+              <button id="customerErpSyncBtn" class="btn outline permission-manage hidden" type="button">ERP 거래처 동기화</button>
+              <button id="customerAddBtn" class="btn primary permission-edit hidden" type="button">+ 수동 거래처 등록</button>
+            </div>
+          </div>
+
+          <div id="customerSyncSummary" class="customer-sync-summary"></div>
+
+          <article class="panel customer-map-panel">
+            <div class="panel-head customer-map-head">
+              <div><p class="eyebrow dark">ACTIVE CUSTOMER COVERAGE</p><h3>사업분야별 거래처 지도</h3><p class="panel-description">딜러 지도는 실제 판매 담당국가, ODM 지도는 최종 공급국가를 기준으로 표시합니다.</p></div>
+              <div id="customerMapSegments" class="customer-map-segments" role="tablist">
+                <button data-customer-map-segment="medical" type="button">메디컬</button>
+                <button class="active" data-customer-map-segment="dental" type="button">덴탈</button>
+                <button data-customer-map-segment="aesthetic" type="button">에스테틱</button>
+                <button data-customer-map-segment="odm" type="button">ODM</button>
+              </div>
+            </div>
+            <div class="customer-map-layout">
+              <div id="customerWorldMap" class="world-map customer-world-map"><div class="empty-state">거래처 지도를 불러오는 중입니다.</div></div>
+              <aside id="customerMapDetail" class="customer-map-detail"><div class="empty-state">국가를 선택하면 활성 거래처가 표시됩니다.</div></aside>
+            </div>
+            <div class="customer-map-legend"><span><i class="none"></i>활성 0</span><span><i class="one"></i>활성 1</span><span><i class="many"></i>활성 2+</span></div>
+          </article>
+
+          <div id="customerMasterKpis" class="customer-master-kpis"></div>
+
+          <div class="customer-master-toolbar">
+            <input id="customerMasterSearch" type="search" placeholder="고객명·ERP 코드·고객 ID 검색">
+            <select id="customerSourceFilter"><option value="">전체 등록유형</option><option value="erp">ERP 연동 거래처</option><option value="manual">수동 등록 거래처</option><option value="temporary">임시 거래처</option><option value="legacy">기존 이관 거래처</option></select>
+            <select id="customerRegionFilter"><option value="">전체 소재권역</option></select>
+            <select id="customerCountryFilter"><option value="">전체 국가</option></select>
+            <select id="customerBusinessFilter"><option value="">전체 사업분야</option><option value="medical">메디컬</option><option value="dental">덴탈</option><option value="aesthetic">에스테틱</option><option value="odm">ODM</option></select>
+            <select id="customerOwnerFilter"><option value="">전체 담당자</option></select>
+            <select id="customerOrganizationRoleFilter"><option value="">전체 조직 역할</option><option value="distributor">Distributor</option><option value="odm">ODM</option><option value="clinic_hospital">Clinic / Hospital</option><option value="kol">KOL</option><option value="other">Other</option></select>
+            <select id="customerContractFilter"><option value="">전체 계약상태</option></select>
+            <select id="customerStageFilter"><option value="">전체 업무단계</option><option value="review_required">미분류 / 확인 필요</option><option value="new_prospect">신규후보</option><option value="regular_candidate">정규후보</option><option value="regular">정규</option><option value="discontinued">중단</option></select>
+            <select id="customerPerPage"><option value="10">페이지당 10</option><option value="20" selected>페이지당 20</option><option value="30">페이지당 30</option><option value="40">페이지당 40</option><option value="50">페이지당 50</option></select>
+            <label class="customer-check-filter"><input id="customerReviewFilter" type="checkbox"> 정책 확인 필요</label>
+            <label class="customer-check-filter"><input id="customerIncompleteFilter" type="checkbox"> 미완성 거래처만</label>
+            <span id="customerMasterCount" class="count-label"></span>
+          </div>
+
+          <div id="customerActiveRegions" class="customer-region-groups"></div>
+          <div id="customerPagination" class="customer-pagination"></div>
+          <details id="customerInactiveGroup" class="customer-inactive-group">
+            <summary>거래중단·휴면·종료 거래처 <b id="customerInactiveCount">0</b></summary>
+            <div id="customerInactiveList" class="customer-table-card"></div>
+          </details>
+        </section>
+
+        <section id="view-records" class="view">
+          <div class="section-head">
+            <div><p id="recordEyebrow" class="eyebrow dark">BUSINESS DATA</p><h2 id="recordTitle">데이터 관리</h2><p id="recordDescription">담당자별 데이터를 등록하고 변경 이력을 남깁니다.</p></div>
+            <button id="addRecordBtn" class="btn primary permission-edit hidden" type="button">+ 새 항목</button>
+          </div>
+          <div id="recordModuleSummary" class="record-module-summary hidden"></div>
+          <div class="filter-bar"><input id="recordSearch" type="search" placeholder="제목, 거래처, 국가, 담당자 검색"><input id="recordMonthFilter" class="special-record-filter hidden" type="month" aria-label="기준월"><select id="recordSegmentFilter" class="special-record-filter hidden" aria-label="사업분야"><option value="all">전체 사업분야</option><option value="dental">덴탈</option><option value="medical">메디컬</option><option value="aesthetic">에스테틱</option><option value="unclassified">미분류</option></select><select id="recordStatusFilter"><option value="">모든 상태</option></select><button id="recordCountryFilterChip" class="active-filter compact hidden" type="button"></button><span id="recordCount" class="count-label"></span></div>
+          <div id="accountMasterFilters" class="account-master-filters hidden">
+            <select id="accountRegionFilter" aria-label="거래처 권역 필터"><option value="">전체 권역</option></select>
+            <select id="accountCountryFilter" aria-label="거래처 국가 필터"><option value="">전체 국가</option></select>
+            <select id="accountOwnerFilter" aria-label="거래처 담당자 필터"><option value="">전체 담당자</option></select>
+            <select id="accountSort" aria-label="거래처 정렬"><option value="sales_desc">연평균매출 높은순</option><option value="sales_asc">연평균매출 낮은순</option><option value="first_asc">최초거래 오래된순</option><option value="name_asc">거래처명 가나다순</option><option value="owner_asc">담당자 가나다순</option><option value="region_asc">권역순</option><option value="country_asc">국가 가나다순</option></select>
+            <span id="accountAverageDefinition">연평균: 최근 5개년 ERP 해외매출 기준</span>
+          </div>
+          <div class="panel no-pad"><div class="table-wrap"><table><thead id="recordTableHead"></thead><tbody id="recordTableBody"></tbody></table></div></div>
+        </section>
+
+        <section id="view-major-tasks" class="view major-tasks-view">
+          <div class="section-head major-task-head">
+            <div><p class="eyebrow dark">PRIORITY ACTION CONTROL</p><h2>주요 업무</h2><p>마일스톤·실행항목·Ball·RAG와 누적 진행이력을 한 원장으로 관리합니다.</p></div>
+            <div class="inline-actions"><button id="majorTaskSectionBtn" class="btn outline permission-edit hidden" type="button">Section 관리</button><button id="majorTaskWorkstreamBtn" class="btn outline permission-manage hidden" type="button">업무유형 설정</button><button id="majorTaskAddBtn" class="btn primary permission-edit hidden" type="button">+ 주요업무 등록</button></div>
+          </div>
+          <section id="majorTaskDirective" class="major-directive-panel"></section>
+          <div id="majorTaskSummary" class="major-task-summary"></div>
+          <div class="major-task-filter-panel">
+            <div id="majorTaskBusinessFilters" class="major-business-filters" aria-label="사업분야 필터"></div>
+            <div id="majorTaskSubFilters" class="major-sub-filters"></div>
+            <div class="major-task-filter-grid">
+              <input id="majorTaskSearch" type="search" placeholder="업무·국가·거래처·다음 액션 검색">
+              <select id="majorTaskSectionFilter"><option value="">전체 Section</option><option value="__unassigned__">미분류</option></select>
+              <select id="majorTaskWorkstreamFilter"><option value="">전체 업무유형</option></select>
+              <select id="majorTaskOwnerFilter"><option value="">전체 담당자</option></select>
+              <select id="majorTaskCountryFilter"><option value="">전체 국가</option></select>
+              <select id="majorTaskCustomerFilter"><option value="">전체 거래처</option></select>
+              <select id="majorTaskStatusFilter"><option value="">전체 상태</option></select>
+              <select id="majorTaskRagFilter"><option value="">전체 RAG</option><option value="green">Green</option><option value="amber">Amber</option><option value="red">Red</option></select>
+              <select id="majorTaskBallFilter"><option value="">전체 Ball</option><option value="internal">우리</option><option value="customer">고객</option><option value="external">외부기관</option><option value="none">없음</option></select>
+              <select id="majorTaskDueFilter"><option value="">전체 Due</option><option value="week_due">이번 주 Due</option><option value="overdue">Overdue</option></select>
+              <select id="majorTaskDirectiveFilter"><option value="">전체 지시여부</option><option value="1">지시업무</option></select>
+              <button id="majorTaskFilterReset" class="btn subtle" type="button">필터 초기화</button>
+            </div>
+          </div>
+          <div class="major-task-viewbar">
+            <div id="majorTaskViewButtons" class="major-task-view-buttons"></div>
+            <span id="majorTaskCount" class="count-label"></span>
+          </div>
+          <div id="majorTaskContent" class="major-task-content"><div class="empty-state">주요업무를 불러오는 중입니다.</div></div>
+          <div id="majorTaskPagination" class="major-task-pagination"></div>
+        </section>
+
+        <section id="view-users" class="view">
+          <div class="section-head"><div><p class="eyebrow dark">ACCESS CONTROL</p><h2>사용자 관리</h2><p>직접 계정을 등록하거나 가입 신청을 승인하고 역할과 상태를 관리합니다.</p></div><button id="addUserBtn" class="btn primary hidden" type="button">+ 사용자 등록</button></div>
+          <div class="role-guide"><span><b>ADMIN</b> 전체 관리</span><span><b>MANAGER</b> 전체 데이터·ERP</span><span><b>EDITOR</b> 담당 데이터 CRUD</span><span><b>VIEWER</b> 조회 전용</span></div>
+          <p id="userActionMessage" class="action-message" role="status" aria-live="polite"></p>
+          <div class="panel no-pad"><div class="table-wrap"><table><thead><tr><th>사용자</th><th>아이디</th><th>이메일</th><th>역할</th><th>상태</th><th>비밀번호</th><th>최근 로그인</th><th>관리</th></tr></thead><tbody id="usersTableBody"></tbody></table></div></div>
+        </section>
+
+        <section id="view-history" class="view">
+          <div class="section-head"><div><p class="eyebrow dark">IMMUTABLE AUDIT TRAIL</p><h2>변경 이력</h2><p>등록·수정·삭제·권한 변경·ERP 동기화 이력을 계속 보존합니다.</p></div><button id="refreshHistoryBtn" class="btn outline" type="button">새로고침</button></div>
+          <div class="filter-bar"><select id="historyAction"><option value="">모든 작업</option><option>CREATE</option><option>UPDATE</option><option>DELETE</option><option>ERP_SYNC</option><option>LOGIN</option></select></div>
+          <div id="historyTimeline" class="history-timeline"></div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <dialog id="recordDialog" class="modal">
+    <form id="recordForm">
+      <div class="modal-head"><div><p class="eyebrow dark">DATA EDITOR</p><h2 id="recordDialogTitle">항목 등록</h2></div><button class="icon-btn" data-close-dialog="recordDialog" type="button">×</button></div>
+      <input name="id" type="hidden">
+      <input name="entity_type" type="hidden">
+      <div class="form-grid two">
+        <label class="full">제목<input name="title" required maxlength="200"></label>
+        <label>상태<select name="status"></select></label>
+        <label>담당자<select name="owner_id"></select></label>
+        <label id="recordDueDateField"><span id="dueDateLabel">기한</span><input name="due_date" type="date"></label>
+        <label>권역<input name="region" list="standardRegionOptions" maxlength="80" placeholder="중동, 동유럽, 서유럽 등"></label>
+        <datalist id="standardRegionOptions"><option value="중동"><option value="동유럽"><option value="서유럽"><option value="아프리카"><option value="북미"><option value="남미"><option value="오세아니아"><option value="아시아"></datalist>
+        <label>국가<input name="country" maxlength="80" placeholder="Germany"></label>
+        <label><span id="recordAmountLabel">금액</span><input name="amount" type="number" min="0" step="0.01" value="0"></label>
+        <label>통화<select name="currency"><option>USD</option><option>EUR</option><option>KRW</option><option>JPY</option><option>CNY</option></select></label>
+        <div id="recordCommonBusinessFields" class="form-subsection full hidden">
+          <h3 id="recordCommonBusinessTitle">거래처·사업분야</h3>
+          <div class="form-grid two">
+            <label id="recordAccountLinkField">연결 거래처<select name="account_id"><option value="">거래처 미지정</option></select></label>
+            <label><span id="recordBusinessUnitLabel">사업분야</span><select name="business_unit"><option value="">미지정</option><option value="dental">덴탈</option><option value="medical">메디컬</option><option value="aesthetic">에스테틱</option></select></label>
+            <label id="recordTaskCompanyField" class="hidden">업체명<input name="company_name" maxlength="200" placeholder="거래처 또는 대상 업체명"></label>
+          </div>
+        </div>
+        <div id="recordAccountProfileFields" class="form-subsection full hidden">
+          <h3>거래처 기본정보</h3>
+          <p class="form-hint">회사명은 상단 제목에 입력하고, ERP 확정매출은 거래처 상세에서 자동 집계됩니다.</p>
+          <div class="form-grid two">
+            <label class="full">주소<input name="address" maxlength="500" placeholder="본사·사업장 주소"></label>
+            <label>설립일<input name="established_date" type="date"></label>
+            <label>최초 거래일<input name="first_transaction_date" type="date"></label>
+            <label>대표자명<input name="representative_name" maxlength="100"></label>
+            <label>담당자명<input name="account_contact_name" maxlength="100"></label>
+            <label>연락처<input name="contact_phone" maxlength="100" placeholder="전화·WhatsApp"></label>
+            <label>이메일<input name="contact_email" type="email" maxlength="200"></label>
+            <label class="full">기타 내용<textarea name="account_notes" rows="3" maxlength="1500" placeholder="거래 특이사항, 조직구조, 주요 의사결정자 등"></textarea></label>
+          </div>
+        </div>
+        <div id="recordAccountMapFields" class="form-subsection full hidden">
+          <h3>ERP 국가 연결</h3>
+          <p class="form-hint">ERP 거래처명이 다른 경우 입력하면 출고매출이 이 거래처의 국가로 지도에 표시됩니다.</p>
+          <div class="form-grid two">
+            <label>ERP 거래처명<input name="erp_partner_name" maxlength="200" placeholder="Amaranth 거래처명"></label>
+            <label>ERP 거래처코드<input name="erp_partner_code" maxlength="80" placeholder="거래처코드"></label>
+            <label class="full">추가 별칭<input name="erp_partner_aliases" maxlength="500" placeholder="여러 이름은 쉼표로 구분"></label>
+          </div>
+        </div>
+        <div id="recordAccountCommercialFields" class="form-subsection full hidden">
+          <h3>현재 가격조건·후불 수금조건</h3>
+          <p class="form-hint">거래처에 등록한 조건은 미수금·프로모션 입력 시 자동으로 불러옵니다.</p>
+          <div class="form-grid two">
+            <label>주요 판매 아이템<input name="main_items" maxlength="500" placeholder="S1, A1, Colla-DM 등"></label>
+            <label>현재 가격조건<input name="current_price_condition" maxlength="500" placeholder="품목·규격·단가·FOC 조건"></label>
+            <label>수금조건명<input name="ar_condition_label" maxlength="100" placeholder="50/25/25, 33/33/33"></label>
+            <label>선금 비율(%)<input name="ar_advance_ratio" type="number" min="0" max="100" step="0.01"></label>
+          </div>
+          <div class="schedule-input-grid term-grid">
+            <div class="schedule-head">구분</div><div class="schedule-head">기일(출고 후)</div><div class="schedule-head">비율</div>
+            <strong>1차</strong><label><input name="ar_installment_1_days" type="number" min="0" max="3650" placeholder="30"><span>일</span></label><label><input name="ar_installment_1_ratio" type="number" min="0" max="100" step="0.01"><span>%</span></label>
+            <strong>2차</strong><label><input name="ar_installment_2_days" type="number" min="0" max="3650" placeholder="60"><span>일</span></label><label><input name="ar_installment_2_ratio" type="number" min="0" max="100" step="0.01"><span>%</span></label>
+            <strong>3차</strong><label><input name="ar_installment_3_days" type="number" min="0" max="3650" placeholder="90"><span>일</span></label><label><input name="ar_installment_3_ratio" type="number" min="0" max="100" step="0.01"><span>%</span></label>
+            <strong>4차</strong><label><input name="ar_installment_4_days" type="number" min="0" max="3650" placeholder="120"><span>일</span></label><label><input name="ar_installment_4_ratio" type="number" min="0" max="100" step="0.01"><span>%</span></label>
+          </div>
+          <label>수금조건 비고<textarea name="ar_terms_notes" rows="3" maxlength="1000" placeholder="서류조건, 송금수수료, 예외 승인사항"></textarea></label>
+        </div>
+        <div id="recordGoalFields" class="form-subsection full hidden">
+          <h3>목표·점검 일정</h3>
+          <div class="form-grid two">
+            <label>목표 구분<select name="goal_type"><option value="sales">매출</option><option value="pipeline">파이프라인</option><option value="account">거래처</option><option value="activity">영업활동</option><option value="task">업무</option></select></label>
+            <label>목표 단위<input name="target_unit" maxlength="30" placeholder="KRW, USD, 건, %"></label>
+            <label>목표값<input name="target_value" type="number" step="0.01"></label>
+            <label>현재 실적<input name="actual_value" type="number" step="0.01"></label>
+            <label>최초 목표일<input name="original_target_date" type="date"></label>
+            <label>중간 점검일<input name="mid_review_date" type="date"></label>
+            <label>수정 목표일<input name="revised_target_date" type="date"></label>
+            <label>점검 결과<input name="review_result" maxlength="200" placeholder="진행상황·차이·보완조치"></label>
+          </div>
+        </div>
+        <div id="recordActivityFields" class="form-subsection full hidden">
+          <h3>영업 접촉·후속조치</h3>
+          <div class="form-grid two">
+            <label>활동 유형<select name="activity_type"><option value="whatsapp">WhatsApp 연락</option><option value="email_check">이메일 확인</option><option value="email_send">이메일 발송</option><option value="phone">유선 통화</option><option value="video_meeting">화상 미팅</option><option value="exhibition">전시회</option><option value="visit">대면 방문</option><option value="other">기타</option></select></label>
+            <label>연락 상대<input name="contact_person" maxlength="100" placeholder="담당자명 / 부서"></label>
+            <label>활동 일시<input name="activity_at" type="datetime-local"></label>
+            <label>후속조치 목표일<input name="next_action_date" type="date"></label>
+            <label class="full">다음 액션<input name="next_action" maxlength="300" placeholder="회신 확인, 자료 발송, 다음 미팅 등"></label>
+          </div>
+        </div>
+        <div id="recordOrderFields" class="form-subsection full hidden">
+          <h3>PO → PI → 수금 → 출고 단계</h3>
+          <p class="form-hint">완료된 단계의 실제일과 다음 단계 목표일을 입력하세요.</p>
+          <div class="form-grid milestone-grid">
+            <label>PO 접수일<input name="po_received_date" type="date"></label>
+            <label>PI 발송일<input name="pi_sent_date" type="date"></label>
+            <label>PI 컨펌일<input name="pi_confirmed_date" type="date"></label>
+            <label>수금일<input name="payment_received_date" type="date"></label>
+            <label>선적서류 완료일<input name="shipping_docs_date" type="date"></label>
+            <label>출고일<input name="shipped_date" type="date"></label>
+            <label>다음 단계 목표일<input name="next_target_date" type="date"></label>
+            <label>PO / PI 번호<input name="document_no" maxlength="100"></label>
+          </div>
+          <div class="customer-order-terms-box">
+            <div id="recordOrderTermsStatus" class="form-hint">거래처를 선택하면 현재 결제조건과 제품조건을 불러옵니다.</div>
+            <div class="form-grid two">
+              <label>조건 적용방식<select name="customer_terms_mode"><option value="default">기본조건 그대로 적용</option><option value="order_override">이번 주문만 조건 변경</option><option value="save_as_default">변경조건을 새 기본조건으로 저장</option></select></label>
+              <label>변경사유<input name="order_terms_change_reason" maxlength="500" placeholder="기본조건 변경 시 필수"></label>
+              <label>결제방식<input name="order_payment_method" maxlength="100" placeholder="T/T 선불·후불·일부 후불·L/C"></label>
+              <label>수금기준<select name="order_collection_basis"><option value="shipment_date">출고일</option><option value="ci_date">CI 발행일</option><option value="bl_date">B/L 일자</option></select></label>
+              <label>선불 비율(%)<input name="order_advance_ratio" type="number" min="0" max="100" step="0.01"></label>
+              <label>후불일수<input name="order_deferred_days" type="number" min="0" max="3650"></label>
+              <label>적용 제품<input name="order_product_name" list="customerProductOptions" maxlength="200"></label>
+              <label>합의단가<input name="order_agreed_unit_price" type="number" min="0" step="0.000001"></label>
+              <label>MOQ<input name="order_moq" type="number" min="0" step="0.01"></label>
+              <label>MOQ 판단기준<select name="order_moq_basis"><option value="paid">유상수량 기준</option><option value="total_supply">유상+FOC 총공급수량 기준</option></select></label>
+              <label>유상수량<input name="order_paid_quantity" type="number" min="0" step="0.01"></label>
+              <label>FOC 수량<input name="order_foc_quantity" type="number" min="0" step="0.01"></label>
+              <label>MOQ 예외사유<input name="order_moq_exception_reason" maxlength="500" placeholder="MOQ 미충족 시 필수"></label>
+              <label>MOQ 예외 승인자<input name="order_moq_exception_approver" maxlength="100" placeholder="MOQ 미충족 시 필수"></label>
+            </div>
+          </div>
+        </div>
+        <div id="recordCashPlanFields" class="form-subsection full hidden">
+          <h3>자금수지 계획·실행</h3>
+          <p class="form-hint">원본 자금수지점검표의 계획·조정·실행·이월을 한 건씩 관리합니다.</p>
+          <div class="form-grid two">
+            <label>자금 구분<select name="flow_type"><option value="cash_in">수금(Cash In)</option><option value="cash_out">지출(Cash Out)</option><option value="opening_liquid">기초 유동자금</option><option value="fixed_fund">고정자금</option></select></label>
+            <label>계획/실적 상태<select name="plan_actual_type"><option value="planned">예정</option><option value="confirmed">확정 예정</option><option value="actual">ACT</option></select></label>
+            <label>집행항목<select name="execution_category"><option value="overseas_dental_collection">해외 덴탈 수금</option><option value="overseas_medical_collection">해외 메디컬 수금</option><option value="overseas_aesthetic_collection">해외 에스테틱 수금</option><option value="exhibition">해외전시회</option><option value="transport">운반비</option><option value="travel">여비교통비</option><option value="promotion">판매장려금·프로모션</option><option value="product_purchase">상품구입</option><option value="regulatory">인허가</option><option value="fee">지급수수료</option><option value="other_income">기타수입</option><option value="other_expense">기타비용</option></select></label>
+            <label>거래구분<input name="transaction_type" maxlength="100" placeholder="T/T, L/C, 카드, 계좌이체 등"></label>
+            <label>자금계획일<input name="plan_date" type="date"></label>
+            <label>카드결제일<input name="card_payment_date" type="date"></label>
+            <label>자금실행일<input name="execution_date" type="date"></label>
+            <label>만기도래일<input name="maturity_date" type="date"></label>
+            <label>거래처·지급처<input name="counterparty" maxlength="200"></label>
+            <label>결제조건<input name="payment_condition" maxlength="200" placeholder="선금, 30일, 분할지급 등"></label>
+            <label>적용환율<input name="exchange_rate" type="number" min="0" step="0.0001" placeholder="자동 또는 직접 입력"></label>
+            <label>달성률·조정률(%)<input name="adjustment_rate" type="number" min="0" max="100" step="0.1" value="100"></label>
+            <label>지급률(%)<input name="payment_rate" type="number" min="0" max="100" step="0.1" value="100"></label>
+            <label>실제 외화금액<input name="actual_foreign_amount" type="number" min="0" step="0.01"></label>
+            <label>실제 원화금액<input name="actual_krw_amount" type="number" min="0" step="1"></label>
+            <label>비용 성격<select name="cost_nature"><option value="">해당 없음</option><option value="fixed">고정비</option><option value="variable">변동비</option></select></label>
+            <label>계정과목<input name="account_subject" maxlength="100" placeholder="운반비, 여비교통비 등"></label>
+            <label class="check-field"><input name="previous_month_carryover" type="checkbox" value="true"><span>전월 이월 건</span></label>
+            <label class="check-field"><input name="current_month_carryover" type="checkbox" value="true"><span>차월 이월 예정</span></label>
+            <label class="check-field"><input name="intentional_carryover" type="checkbox" value="true"><span>고의 이월·지급조정 건</span></label>
+            <label class="check-field"><input name="split_payment" type="checkbox" value="true"><span>분할 지급·수금 건</span></label>
+            <label class="full">특이사항<textarea name="cash_notes" rows="3" maxlength="1500" placeholder="분할지급, 집행조건, 조정 사유"></textarea></label>
+          </div>
+        </div>
+        <div id="recordReceivableFields" class="form-subsection full hidden">
+          <h3>미수금·미수채권 회수관리</h3>
+          <p class="form-hint">거래처 조건을 불러와 출고일 기준 수금예정일과 금액을 계산하고 실제 입금·잔액·독촉단계를 관리합니다.</p>
+          <div class="form-grid two">
+            <label>인보이스 번호<input name="invoice_no" maxlength="100"></label>
+            <label>ERP 출고번호<input name="shipment_no" maxlength="100"></label>
+            <label>출고일<input name="ship_date" type="date"></label>
+            <label>인보이스일<input name="invoice_date" type="date"></label>
+            <label>적용환율<input name="receivable_exchange_rate" type="number" min="0" step="0.0001"></label>
+            <label>수금조건명<input name="payment_condition_label" maxlength="100" placeholder="50/25/25"></label>
+            <label>선금 비율(%)<input name="advance_ratio" type="number" min="0" max="100" step="0.01"></label>
+            <label>채권 구분<select name="risk_level"><option value="normal">정상</option><option value="watch">주의</option><option value="p1">P1 즉시회수</option><option value="legal">법무검토</option></select></label>
+          </div>
+          <div class="schedule-input-grid receivable-term-grid">
+            <div class="schedule-head">회차</div><div class="schedule-head">기일</div><div class="schedule-head">비율</div><div class="schedule-head">실제 입금일</div><div class="schedule-head">실제 입금액</div>
+            <strong>선금</strong><span>출고 전/당일</span><label><input name="advance_ratio_shadow" type="number" tabindex="-1" disabled><span>%</span></label><label><input name="advance_received_date" type="date"></label><label><input name="advance_received_amount" type="number" min="0" step="0.01"></label>
+            <strong>1차</strong><label><input name="installment_1_days" type="number" min="0" max="3650"><span>일</span></label><label><input name="installment_1_ratio" type="number" min="0" max="100" step="0.01"><span>%</span></label><label><input name="receipt_1_date" type="date"></label><label><input name="receipt_1_amount" type="number" min="0" step="0.01"></label>
+            <strong>2차</strong><label><input name="installment_2_days" type="number" min="0" max="3650"><span>일</span></label><label><input name="installment_2_ratio" type="number" min="0" max="100" step="0.01"><span>%</span></label><label><input name="receipt_2_date" type="date"></label><label><input name="receipt_2_amount" type="number" min="0" step="0.01"></label>
+            <strong>3차</strong><label><input name="installment_3_days" type="number" min="0" max="3650"><span>일</span></label><label><input name="installment_3_ratio" type="number" min="0" max="100" step="0.01"><span>%</span></label><label><input name="receipt_3_date" type="date"></label><label><input name="receipt_3_amount" type="number" min="0" step="0.01"></label>
+            <strong>4차</strong><label><input name="installment_4_days" type="number" min="0" max="3650"><span>일</span></label><label><input name="installment_4_ratio" type="number" min="0" max="100" step="0.01"><span>%</span></label><label><input name="receipt_4_date" type="date"></label><label><input name="receipt_4_amount" type="number" min="0" step="0.01"></label>
+          </div>
+          <div class="form-grid two">
+            <label>회수약속일<input name="promise_date" type="date"></label>
+            <label>회수약속금액<input name="promise_amount" type="number" min="0" step="0.01"></label>
+            <label>다음 회수조치일<input name="next_collection_date" type="date"></label>
+            <label>진행상태<select name="collection_status"><option value="monitoring">모니터링</option><option value="promise_received">입금일·금액 약속</option><option value="partial_paid">부분 수금</option><option value="overdue">연체·독촉</option><option value="dispute">분쟁</option><option value="closed">회수 완료</option></select></label>
+            <label class="full">서면 회수계획<textarea name="recovery_plan" rows="3" maxlength="1500" placeholder="금주 입금일·금액, 담당자 접촉, 미이행 시 조치"></textarea></label>
+            <label class="check-field"><input name="shipment_hold" type="checkbox" value="true"><span>신규출고 보류</span></label>
+            <label class="check-field"><input name="legal_review" type="checkbox" value="true"><span>법무 검토</span></label>
+            <label class="check-field"><input name="representative_approval" type="checkbox" value="true"><span>추가여신 대표 승인</span></label>
+          </div>
+        </div>
+        <div id="recordPromotionFields" class="form-subsection full hidden">
+          <h3>프로모션 조건·타임라인·매출반영</h3>
+          <p class="form-hint">거래처의 현재 가격조건을 기준으로 추가 조건을 기록하고, 목표월 FCST에 자동 반영합니다.</p>
+          <div class="form-grid two">
+            <label>프로모션 고유 ID<input name="promotion_id" maxlength="80" placeholder="A1 8월"></label>
+            <label>대상 아이템<input name="item_name" maxlength="200"></label>
+            <label>현재 가격조건<input name="baseline_price_condition" maxlength="500"></label>
+            <label>프로모션 조건<input name="promotion_terms" maxlength="500" placeholder="할인, FOC, 수량구간 등"></label>
+            <label>기존 단가<input name="baseline_unit_price" type="number" min="0" step="0.01"></label>
+            <label>프로모션 단가<input name="promotion_unit_price" type="number" min="0" step="0.01"></label>
+            <label>목표 수량<input name="target_units" type="number" min="0" step="0.01"></label>
+            <label>달성 수량<input name="achieved_units" type="number" min="0" step="0.01"></label>
+            <label>프로모션 예산<input name="budget_amount" type="number" min="0" step="0.01"></label>
+            <label>달성 매출<input name="achieved_amount" type="number" min="0" step="0.01"></label>
+            <label>시작일<input name="start_date" type="date"></label>
+            <label>종료일<input name="end_date" type="date"></label>
+            <label>매출 반영월<input name="target_month" type="month"></label>
+            <label>목표 출고일<input name="target_ship_date" type="date"></label>
+            <label>FCST 단계<select name="forecast_stage"><option value="sales_activity">일반 영업추진</option><option value="pi_received">PI 수령</option><option value="payment_received">수금 완료</option></select></label>
+            <label>FCST 확률(%)<input name="forecast_confidence" type="number" min="0" max="100" step="1"></label>
+            <label class="check-field full"><input name="forecast_included" type="checkbox" value="true" checked><span>목표월 최신 FCST 차수에 자동 반영</span></label>
+          </div>
+          <div class="promotion-milestone-grid">
+            <div class="schedule-head">단계</div><div class="schedule-head">목표일</div><div class="schedule-head">완료일</div>
+            <strong>조건 제안</strong><input name="proposal_target_date" type="date"><input name="proposal_actual_date" type="date">
+            <strong>내부 승인</strong><input name="approval_target_date" type="date"><input name="approval_actual_date" type="date">
+            <strong>거래처 제안</strong><input name="offer_target_date" type="date"><input name="offer_actual_date" type="date">
+            <strong>오더·PI</strong><input name="order_target_date" type="date"><input name="order_actual_date" type="date">
+            <strong>수금</strong><input name="promotion_payment_target_date" type="date"><input name="promotion_payment_actual_date" type="date">
+            <strong>출고</strong><input name="promotion_shipment_target_date" type="date"><input name="promotion_shipment_actual_date" type="date">
+          </div>
+        </div>
+        <div id="recordDerivedPreview" class="derived-preview full hidden"></div>
+        <label class="full">상세 내용<textarea name="description" rows="5" maxlength="2000" placeholder="업무 내용, 다음 액션, 연락처 등을 입력하세요."></textarea></label>
+        <label id="recordPriorityField">우선순위<select name="priority"><option>High</option><option selected>Medium</option><option>Low</option></select></label>
+        <label id="recordProbabilityField">진행률/확률(%)<input name="probability" type="number" min="0" max="100"></label>
+      </div>
+      <p id="recordFormError" class="form-error" role="alert" aria-live="assertive"></p>
+      <div class="modal-actions"><button class="btn outline" data-close-dialog="recordDialog" type="button">취소</button><button id="recordSubmitBtn" class="btn primary" type="submit">저장</button></div>
+    </form>
+  </dialog>
+
+  <datalist id="customerProductOptions"><option value="S1"><option value="BOSS"><option value="COLLA"><option value="A1 OSS"><option value="A1 DBM"><option value="MedPark Allo(Dental)"><option value="MedPark Allo(Medical)"><option value="Adite"><option value="MedPark Fill"><option value="S Gen"><option value="S Gen Inject"><option value="ADM"><option value="A1 Bonechip"></datalist>
+
+  <dialog id="erpDialog" class="modal compact">
+    <form id="erpForm">
+      <div class="modal-head"><div><p class="eyebrow dark">AMARANTH 10</p><h2>ERP 출고 데이터 동기화</h2></div><button class="icon-btn" data-close-dialog="erpDialog" type="button">×</button></div>
+      <p class="modal-copy">먼저 ERP 응답을 읽어 기존 기간과 건수·금액·통화·관리구분을 비교합니다. 필수 검증을 통과하고 사용자가 확인한 경우에만 해당 기간 자료를 반영합니다.</p>
+      <div class="form-grid two"><label>시작일<input name="date_from" type="date" required></label><label>종료일<input name="date_to" type="date" required></label></div>
+      <div id="erpPreflightResult" class="erp-preflight-result hidden"></div>
+      <p id="erpFormError" class="form-error" role="alert" aria-live="assertive"></p>
+      <div class="modal-actions"><button class="btn outline" data-close-dialog="erpDialog" type="button">취소</button><button id="erpSubmitBtn" class="btn primary" type="submit">ERP 응답 검증</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="passwordDialog" class="modal compact">
+    <form id="passwordForm">
+      <div class="modal-head"><div><p class="eyebrow dark">ACCOUNT SECURITY</p><h2>비밀번호 변경</h2></div><button class="icon-btn password-dialog-close" data-close-dialog="passwordDialog" type="button">×</button></div>
+      <div id="passwordRequiredNotice" class="security-notice hidden"><strong>임시 비밀번호 변경이 필요합니다.</strong><span>새 비밀번호를 설정한 뒤 업무 기능을 사용할 수 있습니다.</span></div>
+      <label>현재 비밀번호<input name="current_password" type="password" required autocomplete="current-password"></label>
+      <label>새 비밀번호<input name="new_password" type="password" required minlength="10" autocomplete="new-password" placeholder="영문+숫자 포함 10자 이상"></label>
+      <label>새 비밀번호 확인<input name="new_password_confirm" type="password" required minlength="10" autocomplete="new-password" placeholder="새 비밀번호 다시 입력"></label>
+      <p class="form-hint">영문과 숫자를 모두 포함해 10자 이상 입력하세요. 현재 비밀번호와 달라야 합니다.</p>
+      <p id="passwordError" class="form-error" role="alert" aria-live="assertive"></p>
+      <div class="modal-actions"><button class="btn outline password-dialog-close" data-close-dialog="passwordDialog" type="button">취소</button><button id="passwordSubmitBtn" class="btn primary" type="submit">비밀번호 변경</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="userCreateDialog" class="modal">
+    <form id="adminUserForm">
+      <div class="modal-head"><div><p class="eyebrow dark">ADMIN USER CREATE</p><h2>사용자 등록</h2></div><button class="icon-btn" data-close-dialog="userCreateDialog" type="button">×</button></div>
+      <div class="security-notice"><strong>관리자가 직접 계정을 생성합니다.</strong><span>사용자는 임시 비밀번호로 로그인한 뒤 반드시 새 비밀번호를 설정합니다.</span></div>
+      <div class="form-grid two">
+        <label>아이디<input name="username" required minlength="2" maxlength="40" autocomplete="off" placeholder="한글·영문·숫자 2자 이상"><small class="field-hint">예: 홍길동, honggildong</small></label>
+        <label>이름<input name="display_name" required minlength="2" maxlength="50" placeholder="홍길동"></label>
+        <label class="full">이메일<input name="email" type="email" autocomplete="off" placeholder="name@medpark.net"></label>
+        <label>역할<select name="role"><option value="viewer">조회자</option><option value="editor" selected>편집자</option><option value="manager">매니저</option><option value="admin">관리자</option></select></label>
+        <label>계정 상태<select name="status"><option value="active" selected>즉시 사용</option><option value="pending">승인 대기</option><option value="disabled">사용 중지</option></select></label>
+        <label>임시 비밀번호<input name="password" type="password" required minlength="10" autocomplete="new-password" placeholder="영문+숫자 포함 10자 이상"></label>
+        <label>임시 비밀번호 확인<input name="password_confirm" type="password" required minlength="10" autocomplete="new-password" placeholder="임시 비밀번호 다시 입력"></label>
+      </div>
+      <p id="adminUserError" class="form-error" role="alert" aria-live="assertive"></p>
+      <div class="modal-actions"><button class="btn outline" data-close-dialog="userCreateDialog" type="button">취소</button><button id="adminUserSubmitBtn" class="btn primary" type="submit">사용자 등록</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="resetPasswordDialog" class="modal compact">
+    <form id="resetPasswordForm">
+      <div class="modal-head"><div><p class="eyebrow dark">PASSWORD RESET</p><h2>임시 비밀번호 발급</h2></div><button class="icon-btn" data-close-dialog="resetPasswordDialog" type="button">×</button></div>
+      <input name="user_id" type="hidden">
+      <p id="resetPasswordTarget" class="modal-copy"></p>
+      <label>임시 비밀번호<input name="password" type="password" required minlength="10" autocomplete="new-password" placeholder="영문+숫자 포함 10자 이상"></label>
+      <label>임시 비밀번호 확인<input name="password_confirm" type="password" required minlength="10" autocomplete="new-password" placeholder="임시 비밀번호 다시 입력"></label>
+      <p id="resetPasswordError" class="form-error" role="alert" aria-live="assertive"></p>
+      <div class="modal-actions"><button class="btn outline" data-close-dialog="resetPasswordDialog" type="button">취소</button><button id="resetPasswordSubmitBtn" class="btn primary" type="submit">임시 비밀번호 발급</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="confirmDialog" class="modal compact">
+    <div class="modal-head"><div><p class="eyebrow danger-text">CONFIRM ACTION</p><h2 id="confirmTitle">삭제 확인</h2></div><button class="icon-btn" data-close-dialog="confirmDialog" type="button">×</button></div>
+    <p id="confirmMessage" class="modal-copy"></p>
+    <div class="modal-actions"><button class="btn outline" data-close-dialog="confirmDialog" type="button">취소</button><button id="confirmActionBtn" class="btn danger" type="button">삭제</button></div>
+  </dialog>
+
+  <dialog id="targetDialog" class="modal compact">
+    <form id="targetForm">
+      <div class="modal-head"><div><p class="eyebrow dark">SALES TARGET</p><h2 id="targetDialogTitle">매출 목표 수정</h2></div><button class="icon-btn" data-close-dialog="targetDialog" type="button">×</button></div>
+      <input name="target_type" type="hidden"><input name="target_key" type="hidden">
+      <p id="targetDialogMeta" class="modal-copy"></p>
+      <label>목표금액(KRW)<input name="target_krw" type="number" min="0" step="1000000" required></label>
+      <p id="targetFormError" class="form-error" role="alert" aria-live="assertive"></p>
+      <div class="modal-actions"><button class="btn outline" data-close-dialog="targetDialog" type="button">취소</button><button id="targetSubmitBtn" class="btn primary" type="submit">목표 저장</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="accountJourneyDialog" class="modal journey-modal">
+    <div class="journey-shell">
+      <div class="modal-head"><div><p class="eyebrow dark">ACCOUNT SALES & ACTIVITY HISTORY</p><h2 id="accountJourneyTitle">거래처 매출·영업 통합이력</h2><p id="accountJourneyMeta" class="modal-copy"></p></div><button class="icon-btn" data-close-dialog="accountJourneyDialog" type="button">×</button></div>
+      <div id="accountJourneySummary" class="journey-summary"></div>
+      <div id="accountJourneyContent" class="journey-content"></div>
+      <div id="accountJourneyActions" class="modal-actions permission-edit hidden"><button class="btn outline" data-account-add="activity" type="button">+ 영업 활동</button><button class="btn primary" data-account-add="order" type="button">+ 수주 진행</button></div>
+    </div>
+  </dialog>
+
+  <dialog id="forecastCycleDialog" class="modal compact">
+    <form id="forecastCycleForm">
+      <div class="modal-head"><div><p class="eyebrow dark">FORECAST BASELINE</p><h2 id="forecastCycleDialogTitle">FCST 차수·기준환율 설정</h2></div><button class="icon-btn" data-close-dialog="forecastCycleDialog" type="button">×</button></div>
+      <p class="modal-copy">FCST 원화 환산에는 이 기준환율을 사용합니다. ERP 확정매출은 면장 발급시점 환율이 반영된 원화 금액을 그대로 사용합니다.</p>
+      <div class="form-grid two">
+        <label>FCST 대상월<input name="forecast_month" type="month" required></label>
+        <label>가마감 차수<select name="round_no" required><option value="1">1차 가마감</option><option value="2">2차 가마감</option><option value="3">3차 가마감</option></select></label>
+        <label>기준일<input name="as_of_date" type="date" required></label>
+        <label>상태<select name="status"><option value="open">입력·수정 가능</option><option value="closed">차수 마감</option></select></label>
+      </div>
+      <div class="fx-form-grid">
+        <label><span>USD 1달러</span><input name="usd_krw" type="number" step="0.01" min="0.01" required><small>원</small></label>
+        <label><span>EUR 1유로</span><input name="eur_krw" type="number" step="0.01" min="0.01" required><small>원</small></label>
+        <label><span>JPY 1엔</span><input name="jpy_krw" type="number" step="0.0001" min="0.0001" required><small>원</small></label>
+        <label><span>CNY 1위안</span><input name="cny_krw" type="number" step="0.01" min="0.01" required><small>원</small></label>
+      </div>
+      <button id="useDailyFxBtn" class="btn subtle wide" type="button">오늘 기준환율 불러오기</button>
+      <p id="forecastCycleError" class="form-error" role="alert" aria-live="assertive"></p>
+      <div class="modal-actions"><button class="btn outline" data-close-dialog="forecastCycleDialog" type="button">취소</button><button id="forecastCycleSubmitBtn" class="btn primary" type="submit">저장</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="forecastItemDialog" class="modal">
+    <form id="forecastItemForm">
+      <div class="modal-head"><div><p class="eyebrow dark">FORECAST ENTRY</p><h2 id="forecastItemDialogTitle">FCST 등록</h2></div><button class="icon-btn" data-close-dialog="forecastItemDialog" type="button">×</button></div>
+      <input name="id" type="hidden">
+      <input name="cycle_id" type="hidden">
+      <div id="forecastItemCycleNotice" class="security-notice"></div>
+      <div class="form-grid two">
+        <label class="full">FCST 항목명<input name="title" required maxlength="200" placeholder="예: ZimVie 9월 정규 발주"></label>
+        <label>거래처<select name="account_id"><option value="">거래처 미지정</option></select></label>
+        <label>품목명<input name="item_name" maxlength="200" placeholder="제품명 또는 발주 품목군"></label>
+        <label>사업분야<select name="business_unit" required><option value="dental">덴탈</option><option value="medical">메디컬</option><option value="aesthetic">에스테틱</option><option value="unclassified">미분류</option></select></label>
+        <label>영업단계<select name="stage" required><option value="sales_activity">일반 영업추진</option><option value="pi_received">PI 수령</option><option value="payment_received">수금 완료</option></select></label>
+        <label>반영 확률(%)<input name="confidence" type="number" min="0" max="100" step="1" required></label>
+        <label>예상 출고일<input name="expected_ship_date" type="date"></label>
+        <label>외화금액<input name="foreign_amount" type="number" min="0" step="0.01" required></label>
+        <label>통화<select name="currency" required><option value="USD">USD 미국달러</option><option value="EUR">EUR 유로</option><option value="JPY">JPY 일본엔</option><option value="CNY">CNY 중국위안</option><option value="KRW">KRW 원화</option></select></label>
+        <label>담당자<select name="owner_id"></select></label>
+        <label class="full">메모<textarea name="notes" rows="4" maxlength="2000" placeholder="PI 번호, 수금예정일, 리스크, 다음 조치 등을 입력하세요."></textarea></label>
+      </div>
+      <div id="forecastConversionPreview" class="conversion-preview"></div>
+      <p id="forecastItemError" class="form-error" role="alert" aria-live="assertive"></p>
+      <div class="modal-actions"><button class="btn outline" data-close-dialog="forecastItemDialog" type="button">취소</button><button id="forecastItemSubmitBtn" class="btn primary" type="submit">저장</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="forecastDetailDialog" class="modal forecast-detail-dialog">
+    <form id="forecastDetailForm">
+      <div class="modal-head"><div><p class="eyebrow dark">WORKBOOK FCST DETAIL</p><h2 id="forecastDetailDialogTitle">상세자료 추가</h2></div><button class="icon-btn" data-close-dialog="forecastDetailDialog" type="button">×</button></div>
+      <input name="id" type="hidden">
+      <div class="security-notice"><strong id="forecastDetailDialogRound">선택 차수</strong><span>이 자료는 현재 FCST 차수 메뉴 안에서만 사용되며 기존 메뉴·ERP와 연결되지 않습니다.</span></div>
+      <div class="form-grid two">
+        <label>진행구분<select name="sales_stage" required><option value="confirmed">확정 매출</option><option value="scheduled">예정 매출</option><option value="pipeline">추진 매출</option><option value="undecided">미정</option></select></label>
+        <label>진행상태<select name="progress_status" required><option value="order_received">오더접수</option><option value="pi_issued">PI발행</option><option value="payment_completed">입금완료</option><option value="shipment_completed">출고완료</option></select></label>
+        <label>관리유형<select name="management_type" required><option value="regular">일반</option><option value="additional">추가추진</option><option value="promotion">프로모션</option><option value="expiring_inventory">임박재고</option></select></label>
+        <label>사업분야<select name="business_unit" required><option value="aesthetic">에스테틱</option><option value="medical">메디컬</option><option value="dental">덴탈</option></select></label>
+        <label>국가<input name="country_name" required maxlength="150" placeholder="예: 일본"></label>
+        <label>거래처<input name="account_name" required maxlength="200" placeholder="예: ABC Medical"></label>
+        <label>품목<input name="item_name" required maxlength="200" placeholder="원본은 품목 미지정"></label>
+        <label>분류<input name="classification" maxlength="100" placeholder="화이트·블루 등 원본 분류"></label>
+        <label>담당자<input name="owner_name" maxlength="100"></label>
+        <label>매출 시점<input name="timing_note" maxlength="200" placeholder="예: 8월, 차월"></label>
+        <label>목표일<input name="target_date" type="date"></label>
+        <label>통화<select name="currency"><option value="USD">USD</option><option value="EUR">EUR</option><option value="JPY">JPY</option><option value="CNY">CNY</option><option value="KRW">KRW</option></select></label>
+        <label>적용 환율<input name="applied_rate" type="number" min="0" step="0.0001"><small class="forecast-detail-fx-note">수정 시 현재 상세자료의 원화만 자동 변경</small></label>
+      </div>
+      <div class="forecast-detail-amount-grid">
+        <div><strong>목표금액</strong><label>외화<input name="plan_foreign" type="number" min="0" step="0.01"></label><label>원화<input name="plan_krw" type="number" min="0" step="1"></label></div>
+        <div><strong>전월 이월</strong><label>외화<input name="carryover_foreign" type="number" min="0" step="0.01"></label><label>원화<input name="carryover_krw" type="number" min="0" step="1"></label></div>
+        <div><strong>당월</strong><label>외화<input name="current_foreign" type="number" min="0" step="0.01"></label><label>원화<input name="current_krw" type="number" min="0" step="1"></label></div>
+        <div><strong>차월</strong><label>외화<input name="next_foreign" type="number" min="0" step="0.01"></label><label>원화<input name="next_krw" type="number" min="0" step="1"></label></div>
+      </div>
+      <details class="forecast-detail-date-fields"><summary>수주·수금·선적 일정 입력</summary><div class="form-grid two">
+        <label>수주/합의일<input name="order_agreed_at" type="date"></label><label>PO 접수일<input name="po_received_at" type="date"></label>
+        <label>PI 발송일<input name="pi_sent_at" type="date"></label><label>입금 예정일<input name="payment_expected_at" type="date"></label>
+        <label>입금 완료일<input name="payment_completed_at" type="date"></label><label>선적 예정일<input name="shipment_expected_at" type="date"></label>
+        <label>선적 완료일<input name="shipment_completed_at" type="date"></label><label>출고 완료일<input name="shipping_completed_at" type="date"></label>
+      </div></details>
+      <label>변동사유<input name="change_reason" maxlength="500" placeholder="예: 거래처 출고 일정 변경, 환율 변경, 신규 오더 추가"></label>
+      <label>메모<textarea name="notes" rows="4" maxlength="3000" placeholder="리스크, 다음 조치, 협의사항을 입력하세요."></textarea></label>
+      <p id="forecastDetailFormError" class="form-error" role="alert" aria-live="assertive"></p>
+      <div class="modal-actions"><button class="btn outline" data-close-dialog="forecastDetailDialog" type="button">취소</button><button id="forecastDetailSubmitBtn" class="btn primary" type="submit">저장</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="monthlyFcstSaleDialog" class="modal monthly-fcst-sale-dialog">
+    <form id="monthlyFcstSaleForm">
+      <div class="modal-head"><div><p class="eyebrow dark">MONTHLY SALES RECORD</p><h2 id="monthlyFcstSaleDialogTitle">월별 매출 등록</h2></div><button class="icon-btn" data-close-dialog="monthlyFcstSaleDialog" type="button">×</button></div>
+      <input name="id" type="hidden"><input name="version" type="hidden">
+      <div class="form-grid two monthly-fcst-form-grid">
+        <label>거래처<select name="customer_master_id" data-searchable data-placeholder="거래처 검색"><option value="">거래처 마스터 선택</option></select><input name="customer_name" type="hidden"><small>목록에 없으면 아래 빠른등록을 이용하세요.</small><button id="monthlyFcstQuickCustomerOpenBtn" class="btn ghost monthly-fcst-inline-btn" type="button">+ 신규 거래처 빠른등록</button></label>
+        <label>아이템<select name="interim_product_code" data-searchable data-placeholder="Item 검색"><option value="">Customer 취급 Item 선택</option></select><small>승인된 Interim Product Code를 Stable Identity로 사용합니다.</small></label>
+        <label>가격조건<select name="pricing_selection"><option value="base">기본 상업조건</option><option value="promotion">Promotion 적용</option></select></label>
+        <label class="monthly-fcst-promotion-field hidden">Promotion<select name="promotion_id" data-searchable data-placeholder="Promotion 검색"><option value="">적용 가능한 Promotion 선택</option></select><small>Customer · Item · Target Month Scope가 일치하는 Promotion만 표시합니다.</small></label>
+        <label class="monthly-fcst-promotion-detach hidden"><input name="detach_promotion" type="checkbox" value="1"> Promotion 연결 해제 후 일반 FCST로 전환</label>
+        <input name="commercial_context_required" type="hidden" value="1">
+        <label>거래처 국가 기준<input name="country" required maxlength="100" placeholder="거래처 마스터 국가"><small>선택 당시 값을 FCST Snapshot으로 보존합니다.</small></label>
+        <label>담당자<input name="owner_name" type="hidden"><select name="owner_user_id"><option value="">담당자 선택</option></select><small>활성 사용자 계정에서 선택합니다.</small></label>
+        <label>사업분야<select name="business_unit" required><option value="aesthetic">에스테틱</option><option value="medical">메디컬</option><option value="dental">덴탈</option></select></label>
+        <label>신규/기존<select name="customer_history" required><option value="new">신규 거래처</option><option value="existing">기존 거래처</option></select></label>
+        <label>최초 추진월<input name="original_month" type="month" required></label>
+        <label>매출 대상월<input name="target_month" type="month" required></label>
+        <label>진행 시점<select name="timing_type"><option value="current_new">당월 추진</option><option value="previous_carryover">이월</option></select></label>
+        <label>진행상태<select name="sales_status"><option value="confirmed">확정</option><option value="scheduled">예정</option><option value="pipeline" selected>추진</option><option value="undecided">미정</option></select></label>
+        <label>차월 구분<select name="carryover_decision"><option value="no" selected>당월 유지</option><option value="yes">차월 예정</option></select><small>차월 예정은 의사결정 기록입니다. 실제 월 이동은 상세 Drawer의 차월 처리로 실행합니다.</small></label>
+        <label class="monthly-fcst-carryover-field hidden">차월 결정일<input name="carryover_decided_at" type="date"></label>
+        <label class="monthly-fcst-carryover-field hidden">차월 대상월<input name="carryover_target_month" type="month"></label>
+        <label class="monthly-fcst-carryover-field hidden">차월 사유<input name="carryover_decision_reason" maxlength="500" placeholder="차월 결정 사유"></label>
+        <label>환종<select name="transaction_currency" required><option value="USD">USD</option><option value="EUR">EUR</option><option value="JPY">JPY</option><option value="CNH">CNH</option><option value="KRW">KRW</option></select></label>
+        <label>거래금액<input name="transaction_amount" type="number" min="0.01" step="0.01" required><small>환율은 상단 월별 기준환율에서 자동 적용됩니다.</small></label>
+        <label>변경 적용일<input name="effective_at" type="date"><small>실제 업무가 발생한 날짜입니다. 저장시각·처리자는 자동 기록됩니다.</small></label>
+        <label class="monthly-fcst-confirmation-field hidden">영업 확정근거<select name="confirmation_basis"><option value="">선택</option><option value="payment_complete">수금완료</option><option value="lc_open">L/C Open</option><option value="approved_credit">승인된 Credit</option><option value="other">기타</option></select></label>
+        <label class="monthly-fcst-confirmation-field hidden">확정근거 메모<input name="confirmation_note" maxlength="500" placeholder="기타 근거 또는 참고사항"></label>
+      </div>
+      <section id="monthlyFcstQuickCustomerPanel" class="monthly-fcst-quick-customer hidden">
+        <div><strong>신규 거래처 빠른등록</strong><span>최소정보로 TEMP 거래처를 만든 뒤 이 매출에 바로 연결합니다.</span></div>
+        <div class="form-grid three"><label>거래처명<input name="quick_customer_name" maxlength="300"></label><label>국가<input name="quick_customer_country" maxlength="120"></label><label>담당자<span id="monthlyFcstQuickCustomerOwner">담당자 선택 필요</span></label></div>
+        <div class="monthly-fcst-quick-actions"><button id="monthlyFcstQuickCustomerCancelBtn" class="btn outline" type="button">닫기</button><button id="monthlyFcstQuickCustomerSaveBtn" class="btn primary" type="button">빠른등록 후 선택</button></div>
+      </section>
+      <details class="monthly-fcst-milestones" open><summary>진행단계 · 예상일 · 실제일</summary><div class="monthly-fcst-progress-form">
+        <strong>오더합의</strong><input name="order_agreed_at" type="date"><span></span>
+        <strong>PO 수신</strong><input name="po_received_at" type="date"><span></span>
+        <strong>PI</strong><input name="pi_no" maxlength="100" placeholder="PI 번호"><input name="pi_sent_at" type="date" aria-label="PI 발송일">
+        <strong>PI 컨펌</strong><input name="pi_confirmed_at" type="date"><span class="field-hint">입력 시 예정</span>
+        <strong>수금</strong><input name="payment_expected_at" type="date" aria-label="예상 수금일"><input name="payment_actual_at" type="date" aria-label="실제 수금일">
+        <strong>출고</strong><input name="shipment_expected_at" type="date" aria-label="예상 출고일"><input name="shipment_actual_at" type="date" aria-label="실제 출고일">
+        <strong>선적</strong><input name="shipping_expected_at" type="date" aria-label="예상 선적일"><input name="shipping_actual_at" type="date" aria-label="실제 선적일">
+      </div><label>단계 예외사유<input name="exception_reason" maxlength="500" placeholder="일반 순서를 건너뛴 경우 사유"></label></details>
+      <details class="monthly-fcst-milestones"><summary>담당자 출고입력 · Preliminary</summary><div class="form-grid two">
+        <label>실제 거래통화<select name="preliminary_actual_currency"><option value="">FCST 환종 사용</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="JPY">JPY</option><option value="CNH">CNH</option><option value="KRW">KRW</option></select></label>
+        <label>실제 거래통화금액<input name="preliminary_actual_amount" type="number" min="0.01" step="0.01" placeholder="비우면 FCST 금액 제안"></label>
+        <label>참조번호<input name="preliminary_reference_no" maxlength="150" placeholder="선택 입력"></label>
+        <label>메모<input name="preliminary_note" maxlength="1000" placeholder="선택 입력"></label>
+      </div><p class="field-hint">실제 출고일과 함께 저장합니다. ERP 공식 Actual이 아니며 환율이 없으면 ‘환율 확인대기’로 저장됩니다.</p></details>
+      <label>변경사유<input name="change_reason" maxlength="500" placeholder="수정 시 주요 변경사유"></label>
+      <label>비고<textarea name="notes" rows="5" maxlength="3000" placeholder="줄바꿈이 그대로 보존됩니다."></textarea></label>
+      <div id="monthlyFcstCommercialContext" class="monthly-fcst-commercial-context"><strong>Commercial Context</strong><span>거래처와 Item을 선택하면 Contract·가격·FOC·MOQ·Payment·서류·현지일정을 확인합니다.</span></div>
+      <div id="monthlyFcstConversionPreview" class="conversion-preview"></div>
+      <p id="monthlyFcstSaleError" class="form-error" role="alert" aria-live="assertive"></p>
+      <div class="modal-actions"><button class="btn outline" data-close-dialog="monthlyFcstSaleDialog" type="button">닫기</button><button id="monthlyFcstSaleSubmitBtn" class="btn primary" type="submit">저장</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="monthlyFcstCustomerLinksDialog" class="modal monthly-fcst-customer-links-dialog">
+    <div class="modal-head"><div><p class="eyebrow dark">FCST CUSTOMER RECONCILIATION</p><h2>기존 FCST 거래처 연결 정리</h2><p>거래처명과 국가가 유일하게 일치하는 건만 자동 연결합니다.</p></div><button class="icon-btn" data-close-dialog="monthlyFcstCustomerLinksDialog" type="button">×</button></div>
+    <div id="monthlyFcstCustomerLinkSummary" class="monthly-fcst-customer-link-summary"></div>
+    <div class="monthly-fcst-customer-link-actions"><button id="monthlyFcstCustomerAutoMatchBtn" class="btn primary" type="button">명확한 거래처 자동 연결</button><label>상태<select id="monthlyFcstCustomerLinkFilter"><option value="needs_action">확인 필요</option><option value="all">전체</option><option value="auto_ready">자동연결 가능</option><option value="review">후보 확인</option><option value="unmatched">마스터 없음</option><option value="linked">연결 완료</option><option value="excluded">연결 제외</option></select></label></div>
+    <datalist id="monthlyFcstCustomerMasterOptions"></datalist>
+    <div id="monthlyFcstCustomerLinkList" class="monthly-fcst-customer-link-list"></div>
+    <p id="monthlyFcstCustomerLinkError" class="form-error" role="alert"></p>
+    <div class="modal-actions"><button class="btn outline" data-close-dialog="monthlyFcstCustomerLinksDialog" type="button">닫기</button></div>
+  </dialog>
+
+  <dialog id="monthlyFcstGlobalFilterDialog" class="monthly-fcst-filter-dialog">
+    <form id="monthlyFcstGlobalFilterForm">
+      <div class="monthly-fcst-filter-head"><div><p class="eyebrow dark">DASHBOARD FILTER</p><h2>전체 필터</h2><span>완료를 누르면 전체 대시보드에 적용됩니다.</span></div><button class="icon-btn" data-monthly-global-filter-cancel type="button" aria-label="필터 닫기">×</button></div>
+      <div class="monthly-fcst-global-filter-fields">
+        <label>비교기준<input id="monthlyFcstCompareDate" type="date" aria-label="비교 기준일"></label>
+        <label>사업분야<select id="monthlyFcstBusiness"><option value="">전체</option><option value="aesthetic">에스테틱</option><option value="medical">메디컬</option><option value="dental">덴탈</option></select></label>
+        <label>담당자<select id="monthlyFcstOwner"><option value="">전체</option></select></label>
+        <label>상태<select id="monthlyFcstStatus"><option value="">전체</option><option value="confirmed">확정</option><option value="scheduled">예정</option><option value="pipeline">추진</option><option value="undecided">미정</option></select></label>
+        <label>국가<select id="monthlyFcstCountry"><option value="">전체</option></select></label>
+        <label>거래처<select id="monthlyFcstCustomer"><option value="">전체</option></select></label>
+        <label>진행 시점<select id="monthlyFcstTiming"><option value="">전체</option><option value="current_new">당월 추진</option><option value="previous_carryover">이월</option></select></label>
+        <label>신규/기존<select id="monthlyFcstCustomerHistory"><option value="">전체</option><option value="new">신규 거래처</option><option value="existing">기존 거래처</option></select></label>
+        <label>최초 추진월<select id="monthlyFcstOriginalMonth"><option value="">전체</option></select></label>
+        <label>매출분리<select id="monthlyFcstSplit"><option value="">전체</option><option value="yes">분리 건</option><option value="no">일반 건</option></select></label>
+        <label>차월 구분<select id="monthlyFcstCarryover"><option value="">전체</option><option value="yes">차월 예정·처리</option><option value="no">당월 유지</option></select></label>
+        <label>지연·위험<select id="monthlyFcstRisk"><option value="">전체</option><option value="yes">확인 필요</option></select></label>
+        <label class="full">검색<input id="monthlyFcstSearch" type="search" placeholder="거래처·국가·관리번호·비고"></label>
+      </div>
+      <div class="monthly-fcst-filter-footer"><button id="monthlyFcstFilterReset" class="btn outline" type="button">초기화</button><div><button class="btn outline" data-monthly-global-filter-cancel type="button">취소</button><button class="btn primary" type="submit">완료</button></div></div>
+    </form>
+  </dialog>
+
+  <dialog id="monthlyFcstSectionFilterDialog" class="monthly-fcst-filter-dialog">
+    <form id="monthlyFcstSectionFilterForm">
+      <div class="monthly-fcst-filter-head"><div><p class="eyebrow dark">SECTION FILTER</p><h2 id="monthlyFcstSectionFilterTitle">섹션 필터</h2><span>같은 항목은 OR, 서로 다른 항목은 AND로 적용됩니다.</span></div><button class="icon-btn" data-close-dialog="monthlyFcstSectionFilterDialog" type="button" aria-label="필터 닫기">×</button></div>
+      <div id="monthlyFcstSectionFilterFields" class="monthly-fcst-filter-fields"></div>
+      <div class="monthly-fcst-filter-footer"><button id="monthlyFcstSectionFilterResetBtn" class="btn outline" type="button">초기화</button><div><button class="btn outline" data-close-dialog="monthlyFcstSectionFilterDialog" type="button">취소</button><button id="monthlyFcstSectionFilterApplyBtn" class="btn primary" type="submit">완료</button></div></div>
+    </form>
+  </dialog>
+
+  <dialog id="monthlyFcstActionDialog" class="modal compact">
+    <form id="monthlyFcstActionForm">
+      <div class="modal-head"><div><p id="monthlyFcstActionEyebrow" class="eyebrow dark">SALES ACTION</p><h2 id="monthlyFcstActionTitle">매출분리</h2></div><button class="icon-btn" data-close-dialog="monthlyFcstActionDialog" type="button">×</button></div>
+      <input name="sale_id" type="hidden"><input name="sale_version" type="hidden"><input name="action_type" type="hidden"><input name="operation_key" type="hidden">
+      <div id="monthlyFcstActionMeta" class="security-notice"></div>
+      <div id="monthlyFcstActionFields" class="form-grid two"></div>
+      <p id="monthlyFcstActionError" class="form-error" role="alert" aria-live="assertive"></p>
+      <div class="modal-actions"><button class="btn outline" data-close-dialog="monthlyFcstActionDialog" type="button">닫기</button><button id="monthlyFcstActionSubmitBtn" class="btn primary" type="submit">처리</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="monthlyFcstDetailDrawer" class="monthly-fcst-detail-drawer">
+    <div class="monthly-fcst-detail-shell">
+      <div class="monthly-fcst-detail-head"><div><p class="eyebrow dark">SALES DETAIL</p><h2 id="monthlyFcstDetailTitle">매출 상세</h2><span id="monthlyFcstDetailSubtitle"></span></div><button class="icon-btn" data-close-dialog="monthlyFcstDetailDrawer" type="button" aria-label="상세 닫기">×</button></div>
+      <div id="monthlyFcstDetailBody" class="monthly-fcst-detail-body"></div>
+      <div id="monthlyFcstDetailActions" class="monthly-fcst-detail-actions"></div>
+    </div>
+  </dialog>
+
+  <dialog id="monthlyFcstSettingsDialog" class="modal monthly-fcst-settings-dialog">
+    <form id="monthlyFcstSettingsForm">
+      <div class="modal-head"><div><p class="eyebrow dark">EXCHANGE RATE · TARGET · ROUND CUTOFF · GOOGLE SHEETS</p><h2>월별 설정</h2></div><button class="icon-btn" data-close-dialog="monthlyFcstSettingsDialog" type="button">×</button></div>
+      <div class="form-grid two"><label>설정월<input name="target_month" type="month" required readonly></label></div>
+      <section class="monthly-fcst-rate-settings"><div><strong>신규·재계획 기본환율</strong><span>변경해도 기존 FCST의 계획환율 Snapshot은 바뀌지 않습니다.</span></div><div class="monthly-fcst-rate-setting-grid"><label>USD<input name="rate_USD" type="number" min="0.0001" step="0.0001" required></label><label>EUR<input name="rate_EUR" type="number" min="0" step="0.0001"></label><label>JPY (1엔)<input name="rate_JPY" type="number" min="0" step="0.0001"></label><label>CNH<input name="rate_CNH" type="number" min="0" step="0.0001"></label><label>KRW<input name="rate_KRW" type="number" value="1" readonly></label></div><label class="monthly-fcst-rate-reason">기본환율 변경사유 <span>기존 기본환율을 변경하는 경우 필수</span><input name="rate_correction_reason" maxlength="500" placeholder="예: 9월 내부 계획환율 확정"></label></section>
+      <div class="monthly-fcst-target-grid">
+        <strong>사업분야</strong><strong>목표 USD</strong><strong>목표 원화</strong>
+        <span>에스테틱</span><input name="aesthetic_target_usd" type="number" min="0" step="0.01"><input name="aesthetic_target_krw" type="number" min="0" step="1">
+        <span>메디컬</span><input name="medical_target_usd" type="number" min="0" step="0.01"><input name="medical_target_krw" type="number" min="0" step="1">
+        <span>덴탈</span><input name="dental_target_usd" type="number" min="0" step="0.01"><input name="dental_target_krw" type="number" min="0" step="1">
+      </div>
+      <section class="monthly-fcst-cutoff-settings"><div><strong>차수별 마감기준일</strong><span>각 카드 선택 시 해당 날짜 23:59:59 기준으로 전체 대시보드를 조회합니다.</span></div><div class="monthly-fcst-cutoff-grid"><label>최초 FCST<input name="initial_cutoff_date" type="date"></label><label>1차<input name="round1_cutoff_date" type="date"></label><label>2차<input name="round2_cutoff_date" type="date"></label><label>3차<input name="round3_cutoff_date" type="date"></label><label>최종마감<input name="final_cutoff_date" type="date"></label></div></section>
+      <section class="monthly-fcst-history-settings"><div><strong>과거 차수자료 이관</strong><span>현재 매출을 만들지 않고 실제 기준일 당시의 거래처별 자료만 복원합니다.</span></div><div id="monthlyFcstHistoryImportStatus" class="monthly-fcst-history-import-status"></div><button id="monthlyFcstHistoryImportOpenBtn" class="btn outline" type="button">과거자료 이관</button></section>
+      <div id="monthlyFcstSheetSetup" class="monthly-fcst-sheet-setup"></div>
+      <p id="monthlyFcstSettingsError" class="form-error" role="alert" aria-live="assertive"></p>
+      <div class="modal-actions"><button id="monthlyFcstSheetInitBtn" class="btn outline" type="button">Google Sheets 구성·동기화</button><button class="btn outline" data-close-dialog="monthlyFcstSettingsDialog" type="button">취소</button><button id="monthlyFcstSettingsSubmitBtn" class="btn primary" type="submit">저장</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="monthlyFcstImportDialog" class="modal compact">
+    <form id="monthlyFcstImportForm">
+      <div class="modal-head"><div><p class="eyebrow dark">EXCEL IMPORT</p><h2>월별 매출 자료 가져오기</h2></div><button class="icon-btn" data-close-dialog="monthlyFcstImportDialog" type="button">×</button></div>
+      <p class="modal-copy">9월 이전을 포함해 모든 과거월 자료를 한 파일로 가져올 수 있습니다. 전용 양식의 ‘최초 추진월’과 ‘매출 대상월’을 YYYY-MM으로 입력하고, 업로드 전에 각 대상월의 기준환율을 월별 설정에서 저장해 주세요. 오류가 있는 경우 전체 저장을 취소하고 행별 수정방법을 안내합니다.</p>
+      <label>Excel 파일<input name="file" type="file" accept=".xlsx" required></label>
+      <div id="monthlyFcstImportErrors" class="monthly-fcst-import-errors"></div>
+      <p id="monthlyFcstImportError" class="form-error" role="alert" aria-live="assertive"></p>
+      <div class="modal-actions"><button class="btn outline" data-close-dialog="monthlyFcstImportDialog" type="button">취소</button><button id="monthlyFcstImportSubmitBtn" class="btn primary" type="submit">검증 후 가져오기</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="monthlyFcstHistoryImportDialog" class="modal compact">
+    <form id="monthlyFcstHistoryImportForm">
+      <div class="modal-head"><div><p class="eyebrow dark">HISTORICAL ROUND IMPORT</p><h2>과거 차수자료 이관</h2></div><button class="icon-btn" data-close-dialog="monthlyFcstHistoryImportDialog" type="button">×</button></div>
+      <p class="modal-copy">현재 매출 장부는 변경하지 않습니다. 선택한 대상월의 실제 기준일 스냅샷으로 저장합니다. 같은 대상월·차수를 다시 올리면 교체 사유를 남기고 이전 자료는 이력으로 보존합니다.</p>
+      <div class="form-grid two">
+        <input name="replace_existing" type="hidden">
+        <label>대상월<input name="target_month" type="month" required readonly></label>
+        <label>자료 구분<select name="round_key" required><option value="initial">최초 FCST</option><option value="round1">1차</option><option value="round2">2차</option><option value="round3">3차</option><option value="final">최종마감</option></select></label>
+        <label>실제 기준일<input name="cutoff_date" type="date" required readonly></label>
+        <label>Excel 파일<input name="file" type="file" accept=".xlsx" required></label>
+        <label id="monthlyFcstHistoryReplacementReasonField" class="full hidden">교체 사유<input name="replacement_reason" maxlength="500" placeholder="예: 진행 시점 누락자료 정정"></label>
+      </div>
+      <div id="monthlyFcstHistoryReplacementNotice" class="security-notice hidden"></div>
+      <div class="security-notice"><strong>거래처별 상세자료가 필요합니다.</strong><span>일반 업로드 양식을 사용하되 매출 대상월은 선택한 대상월과 같아야 합니다. 기준환율은 월별 설정값을 사용합니다.</span></div>
+      <div id="monthlyFcstHistoryImportErrors" class="monthly-fcst-import-errors"></div>
+      <p id="monthlyFcstHistoryImportError" class="form-error" role="alert" aria-live="assertive"></p>
+      <div class="modal-actions"><button id="monthlyFcstHistoryTemplateBtn" class="btn outline" type="button">업로드 양식</button><button class="btn outline" data-close-dialog="monthlyFcstHistoryImportDialog" type="button">취소</button><button id="monthlyFcstHistoryImportSubmitBtn" class="btn primary" type="submit">검증 후 이관</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="monthlyFcstHistoryDialog" class="modal monthly-fcst-history-dialog">
+    <div class="modal-head"><div><p class="eyebrow dark">IMMUTABLE SALES HISTORY</p><h2 id="monthlyFcstHistoryTitle">매출 변경이력</h2></div><button class="icon-btn" data-close-dialog="monthlyFcstHistoryDialog" type="button">×</button></div>
+    <div id="monthlyFcstHistoryContent" class="history-timeline"></div>
+  </dialog>
+
+  <dialog id="customerMasterDialog" class="modal customer-master-dialog">
+    <form id="customerMasterForm">
+      <div class="modal-head"><div><p class="eyebrow dark">CUSTOMER MASTER</p><h2 id="customerMasterDialogTitle">거래처 등록</h2></div><button class="icon-btn" data-close-dialog="customerMasterDialog" type="button">×</button></div>
+      <input name="id" type="hidden">
+      <input name="relationship_type" type="hidden" value="dealer">
+      <input name="customer_role" type="hidden" value="Distributor">
+      <div class="customer-form-section"><h3>기본정보·담당자</h3><div class="form-grid two">
+        <label>화면 표시용 거래처명<input name="display_name" required maxlength="300"></label>
+        <label>영문 법인명<input name="legal_name_en" maxlength="300"></label>
+        <label>ERP 거래처 코드<input name="erp_partner_code" inputmode="numeric" maxlength="80" placeholder="미등록이면 비워두세요"></label>
+        <label>ERP 원본명<input name="erp_original_name" readonly placeholder="ERP 동기화 시 자동 표시"></label>
+        <label>소재국가<select name="headquarters_country" data-searchable data-placeholder="국가 검색" required><option value="">국가 선택</option></select></label>
+        <label>소재권역<input name="sales_region" readonly placeholder="국가에서 자동 파생"></label>
+        <label>거래처 업무단계<select name="business_stage" required><option value="">선택</option><option value="new_prospect">신규후보</option><option value="regular_candidate">정규후보</option><option value="regular">정규</option><option value="discontinued">중단</option></select></label>
+        <label>Master 정리상태<select name="master_maturity" required><option value="">선택</option><option value="temporary">임시 Master</option><option value="formal">정식 Master</option></select></label>
+        <label class="full">조직 역할<select name="organization_roles" data-searchable multiple required><option value="distributor">Distributor</option><option value="odm">ODM</option><option value="clinic_hospital">Clinic / Hospital</option><option value="kol">KOL</option><option value="other">Other</option></select><small>기존 Dealer/Distributor/KOL 관련 원문은 후보로 자동 확정하지 않으며 저장 시 사용자가 선택한 값만 확정됩니다.</small></label>
+        <label>내부 주담당자<select name="primary_owner_id" data-searchable></select></label>
+        <label>내부 부담당자<select name="secondary_owner_id" data-searchable></select></label>
+        <label>기본 결제통화<select name="default_currency"><option>USD</option><option>EUR</option><option>JPY</option><option>CNH</option><option>KRW</option></select></label>
+        <label>사용 언어<select name="language_codes" data-searchable multiple><option value="en">영어</option><option value="ar">아랍어</option><option value="zh">중국어</option><option value="ja">일본어</option><option value="es">스페인어</option><option value="pt">포르투갈어</option><option value="ru">러시아어</option><option value="hi">힌디어</option><option value="fr">프랑스어</option><option value="de">독일어</option></select></label>
+        <label>현지 Timezone<input name="timezone_name" list="customerTimezoneOptions" maxlength="100" placeholder="Asia/Dubai"><datalist id="customerTimezoneOptions"></datalist></label>
+        <label>홈페이지<input name="website" type="url" maxlength="500" placeholder="https://example.com"></label>
+        <label class="full">주소<input name="address" maxlength="1000"></label>
+        <label>첫 거래일<input name="first_transaction_date" type="date"></label>
+        <label>최종 정보 확인일<input name="last_information_reviewed_at" type="date"></label>
+      </div></div>
+      <div class="customer-form-section"><h3>사업분야 · Item · 계약정책</h3><div class="form-grid three"><label>사업분야<select name="business_units" data-searchable multiple required><option value="dental">Dental</option><option value="medical">Medical</option><option value="aesthetic">Aesthetic</option></select></label><label>취급 Item<select name="item_codes" data-searchable multiple data-placeholder="Item 검색"></select><small>Customer Portfolio이며 Contract 적용 Item과 별도입니다.</small></label><label>계약정책<select name="contract_policy" data-searchable><option value="">Review Required / 미분류</option><option value="contract_required">계약 필수</option><option value="no_contract_allowed">무계약 거래 허용</option></select><small>기존 133건은 자동 분류하지 않습니다.</small></label></div><p class="form-hint">기존 하위분류 원문은 Legacy로 보존되며 이 화면에서는 새 Item Identity를 사용합니다.</p></div>
+      <label>비고<textarea name="notes" rows="4" maxlength="4000"></textarea></label>
+      <p id="customerMasterDirtyState" class="customer-dirty-state" aria-live="polite"></p>
+      <p id="customerMasterFormError" class="form-error" role="alert" aria-live="assertive"></p>
+      <div class="modal-actions"><button class="btn outline" data-close-dialog="customerMasterDialog" type="button">취소</button><button class="btn primary" type="submit">저장</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="customerDetailDialog" class="modal customer-detail-dialog">
+    <div class="modal-head"><div><p class="eyebrow dark">CUSTOMER 360</p><h2 id="customerDetailTitle">거래처 상세</h2><p id="customerDetailSubtitle"></p></div><button class="icon-btn" data-close-dialog="customerDetailDialog" type="button">×</button></div>
+    <div id="customerDetailHeader" class="customer-detail-header"></div>
+    <div id="customerDetailAlerts" class="customer-detail-alerts hidden"></div>
+    <div id="customerDetailTabs" class="customer-detail-tabs" role="tablist"></div>
+    <div id="customerDetailContent" class="customer-detail-content"></div>
+    <div class="modal-actions"><button id="customerLinkErpBtn" class="btn outline hidden" type="button">ERP 코드 연결</button><button id="customerDeactivateBtn" class="btn outline hidden" type="button">거래중단</button><button id="customerRestoreBtn" class="btn outline hidden" type="button">복원</button><button id="customerEditBtn" class="btn primary hidden" type="button">기본정보 수정</button><button class="btn outline" data-close-dialog="customerDetailDialog" type="button">닫기</button></div>
+  </dialog>
+
+  <dialog id="customerStatusDialog" class="modal compact">
+    <form id="customerStatusForm">
+      <div class="modal-head"><div><p class="eyebrow dark">LIFECYCLE CONTROL</p><h2 id="customerStatusTitle">거래중단 처리</h2></div><button class="icon-btn" data-close-dialog="customerStatusDialog" type="button">×</button></div>
+      <input name="customer_id" type="hidden"><input name="mode" type="hidden">
+      <div id="customerDeactivateFields" class="form-grid two"><label>거래중단일<input name="inactive_date" type="date"></label><label>재개 가능성<input name="restart_probability" maxlength="100"></label><label>재검토 예정일<input name="review_date" type="date"></label><label class="full">중단 사유<textarea name="inactive_reason" required rows="4"></textarea></label></div>
+      <div id="customerRestoreFields" class="hidden"><label>복원 후 업무단계<select name="business_stage"><option value="">선택</option><option value="new_prospect">신규후보</option><option value="regular_candidate">정규후보</option><option value="regular">정규</option></select></label><label>복원 사유<textarea name="restore_reason" rows="4"></textarea></label></div>
+      <p id="customerStatusError" class="form-error"></p>
+      <div class="modal-actions"><button class="btn outline" data-close-dialog="customerStatusDialog" type="button">취소</button><button class="btn primary" type="submit">처리</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="customerSyncDialog" class="modal customer-sync-dialog">
+    <div class="modal-head"><div><p class="eyebrow dark">ERP CUSTOMER SYNC</p><h2>ERP 거래처 동기화 상세</h2><p>현재 저장된 ERP 해외 출고 원장을 `trCd` 기준으로 upsert합니다. ERP에는 쓰지 않습니다.</p></div><button class="icon-btn" data-close-dialog="customerSyncDialog" type="button">×</button></div>
+    <div id="customerSyncHistoryContent"></div>
+    <div class="modal-actions"><button class="btn outline" data-close-dialog="customerSyncDialog" type="button">닫기</button></div>
+  </dialog>
+
+  <dialog id="customerDetailEditDialog" class="modal compact">
+    <form id="customerDetailEditForm">
+      <div class="modal-head"><div><p class="eyebrow dark">CUSTOMER DETAIL</p><h2 id="customerDetailEditTitle">상세정보 등록</h2></div><button class="icon-btn" data-close-dialog="customerDetailEditDialog" type="button">×</button></div>
+      <input name="customer_id" type="hidden"><input name="kind" type="hidden"><input name="row_id" type="hidden">
+      <div id="customerDetailEditFields" class="form-grid two"></div>
+      <p id="customerDetailDirtyState" class="customer-dirty-state" aria-live="polite"></p>
+      <p id="customerDetailEditError" class="form-error" role="alert" aria-live="assertive"></p>
+      <div class="modal-actions"><button class="btn outline" data-close-dialog="customerDetailEditDialog" type="button">취소</button><button class="btn primary" type="submit">저장</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="commercialContextDialog" class="modal commercial-dialog">
+    <form id="commercialContextForm">
+      <div class="modal-head"><div><p class="eyebrow dark">COMMERCIAL CONTEXT</p><h2 id="commercialContextTitle">상업조건 등록</h2></div><button class="icon-btn" data-close-dialog="commercialContextDialog" type="button">×</button></div>
+      <div id="commercialContextFields"></div>
+      <p id="commercialContextError" class="form-error" role="alert" aria-live="assertive"></p>
+      <div class="modal-actions"><button class="btn outline" data-close-dialog="commercialContextDialog" type="button">취소</button><button class="btn primary" type="submit">저장</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="customerCountryRelationDialog" class="modal compact">
+    <form id="customerCountryRelationForm">
+      <div class="modal-head"><div><p class="eyebrow dark">CONTROLLED COUNTRY</p><h2 id="customerCountryRelationTitle">국가 등록</h2></div><button class="icon-btn" data-close-dialog="customerCountryRelationDialog" type="button">×</button></div>
+      <input name="context" type="hidden"><input name="project_id" type="hidden">
+      <div class="form-grid two">
+        <label class="full">국가<select name="country_name" required><option value="">국가 선택</option></select></label>
+        <label id="customerCountryPrimaryField" class="check-field"><input name="is_primary" type="checkbox"><span>주 판매국가</span></label>
+      </div>
+      <p class="form-hint">소재국가·판매국가·ODM 공급국가는 같은 Country Catalog를 사용하지만 각각의 업무 의미와 저장 위치는 유지합니다.</p>
+      <p id="customerCountryRelationError" class="form-error"></p>
+      <div class="modal-actions"><button class="btn outline" data-close-dialog="customerCountryRelationDialog" type="button">취소</button><button class="btn primary" type="submit">등록</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="majorTaskDialog" class="modal major-task-dialog">
+    <form id="majorTaskForm">
+      <div class="modal-head"><div><p class="eyebrow dark">MAJOR TASK LEDGER</p><h2 id="majorTaskDialogTitle">주요업무 등록</h2></div><button class="icon-btn" data-close-dialog="majorTaskDialog" type="button">×</button></div>
+      <input name="id" type="hidden"><input name="version" type="hidden">
+      <div class="major-task-form-grid">
+        <section class="major-form-section major-form-section-primary major-compact-core">
+          <div class="major-form-section-head"><b>1</b><div><h3>주요 기본정보</h3><p>업무명과 분류·관계정보를 한 화면에서 빠르게 입력합니다.</p></div></div>
+          <label class="major-title-field">주요업무명<input name="title" required maxlength="200" placeholder="예: 일본 신규 딜러 계약"></label>
+          <div class="major-compact-grid">
+            <label>상위 업무<select name="parent_task_id"><option value="">상위 업무 없음</option></select><small>Child를 선택하면 Grandchild가 됩니다. 최대 3 Level.</small></label>
+            <div class="major-compact-field"><span class="form-label">Section</span><div class="major-section-select-row"><select name="section_id"><option value="">미분류</option></select><button id="majorTaskSectionInlineAdd" class="mini-btn" type="button">+ 새 Section</button></div><small id="majorTaskSectionInheritance" class="form-hint">Root 업무를 묶는 Major Task 전용 Section입니다.</small><div id="majorTaskInlineSectionCreate" class="major-inline-section-create hidden"><input id="majorTaskInlineSectionName" maxlength="80" placeholder="새 Section 이름"><button id="majorTaskInlineSectionCreateBtn" class="mini-btn emphasis" type="button">생성</button><button id="majorTaskInlineSectionCancelBtn" class="mini-btn" type="button">취소</button><small id="majorTaskInlineSectionError" class="form-error"></small></div></div>
+            <label>거래처<select name="customer_master_id"><option value="">연결 안 함</option></select></label>
+            <label>사업분야<select name="business_pair_unit"><option value="">선택</option><option value="common">공통</option><option value="dental">덴탈</option><option value="medical">메디컬</option><option value="aesthetic">에스테틱</option><option value="legacy_unclassified" disabled>기존 미분류</option></select></label>
+            <label>하위분류<select name="business_pair_subcategory" disabled><option value="">사업분야를 먼저 선택</option></select></label>
+            <label>업무유형<select name="workstream_id"><option value="">미지정</option></select><small>Stage Pipeline과 별개의 업무 성격입니다.</small></label>
+            <div class="major-compact-wide"><span class="form-label">연결된 사업분야 Pair</span><div id="majorTaskBusinessPairs" class="major-business-pairs"></div><p id="majorTaskBusinessPairMessage" class="form-hint" aria-live="polite"></p></div>
+            <div class="major-compact-wide"><span class="form-label">대표 책임자 · 공동 담당자</span><div id="majorTaskOwnersPicker" class="major-people-picker" data-people-picker="task-owners"></div><small>★ 한 명은 대표 책임자이며, 사람관계는 편집권한과 분리됩니다.</small></div>
+          </div>
+        </section>
+
+        <section class="major-form-section major-stage-builder-section">
+          <div class="major-form-section-head"><b>2</b><div><h3>Stage Pipeline</h3><p>단계명·목표일·완료일·담당자를 입력하고, 단계 사이 ＋로 새 단계를 삽입합니다.</p></div></div>
+          <div class="major-stage-builder-toolbar">
+            <label>단계 빠른 구성<select name="stage_template_code"><option value="">직접 구성</option><option value="new_distributor">신규 거래처 개발</option><option value="registration">인허가</option><option value="existing_expansion">기존사업 확대</option></select></label>
+            <div class="major-stage-count" aria-label="Stage 단계 수"><button id="majorTaskStageMinus" type="button" aria-label="마지막 단계 삭제">−</button><output id="majorTaskStageCount">0</output><button id="majorTaskStagePlus" type="button" aria-label="단계 추가">＋</button><span>단계</span></div>
+          </div>
+          <div id="majorTaskStageBuilder" class="major-stage-builder"><div class="major-stage-builder-empty"><strong>단계 미설정</strong><span>＋ 버튼을 눌러 업무 흐름을 구성하세요.</span></div></div>
+        </section>
+
+        <section class="major-form-section">
+          <div class="major-form-section-head"><b>3</b><div><h3>Status / RAG</h3><p>업무 상태와 사용자 판단 RAG를 분리해 기록합니다.</p></div></div>
+          <div class="form-grid two"><label>진행상태<select name="status"><option value="not_started">미착수</option><option value="in_progress">진행중</option><option value="internal_work">내부작업</option><option value="external_wait">외부대기</option><option value="cooperation_wait">협조대기</option><option value="hold">보류</option><option value="completed" disabled>완료 · 전용 처리</option><option value="cancelled" disabled>취소 · 전용 처리</option></select></label><label>중요도<select name="importance"><option value="high">높음</option><option value="medium" selected>보통</option><option value="low">낮음</option></select></label><label>RAG 판단<select name="manual_rag"><option value="">기존값 유지</option><option value="green">Green</option><option value="amber">Amber</option><option value="red">Red</option></select></label><label>RAG 판단사유<input name="manual_rag_reason" maxlength="500"></label></div>
+        </section>
+
+        <section class="major-form-section">
+          <div class="major-form-section-head"><b>4</b><div><h3>일정</h3><p>시작일과 최초·현재 목표완료일을 관리합니다.</p></div></div>
+          <div class="form-grid two"><label>시작일<input name="start_date" type="date"></label><label>최초 목표완료일<input name="original_target_date" type="date"></label><label>현재 목표완료일<input name="current_target_date" type="date"></label><label>목표일 변경사유<input name="target_change_reason" maxlength="500"></label></div>
+        </section>
+
+        <section class="major-form-section">
+          <div class="major-form-section-head"><b>5</b><div><h3>참여자 / 협조자</h3><p>직접 참여자와 협조자를 구분해서 선택합니다.</p></div></div>
+          <div class="form-grid two">
+            <div><span class="form-label">참여자</span><div id="majorTaskParticipantsPicker" class="major-people-picker" data-people-picker="participants"></div></div>
+            <div><span class="form-label">협조자</span><div id="majorTaskCooperatorsPicker" class="major-people-picker" data-people-picker="cooperators"></div></div>
+          </div>
+        </section>
+
+        <details class="major-form-section major-advanced-settings">
+          <summary><span><b>6</b><strong>기타 고급설정</strong></span><small>업무내용·Action·Hard Deadline·Directive·Blocker·시스템 정보</small></summary>
+          <div class="form-grid two">
+            <label>권역<input name="region" maxlength="80"></label><label>국가<input name="country" maxlength="80"></label>
+            <label class="full">기존 거래처명<input name="legacy_customer_name" maxlength="200" placeholder="Customer ID가 불명확한 기존 명칭 보존"></label>
+            <label>관련 제품<input name="product_name" list="majorTaskProductOptions" maxlength="300"></label><label>제품코드<input name="product_code" maxlength="100"></label><datalist id="majorTaskProductOptions"></datalist>
+            <label class="full">업무 목적<textarea name="purpose" rows="2" maxlength="3000"></textarea></label><label class="full">최종 산출물·완료기준<textarea name="completion_criteria" rows="2" maxlength="3000"></textarea></label>
+            <label class="full">다음 주요 액션<input name="next_action" maxlength="1000"></label><label>다음 액션 기한<input name="next_action_date" type="date"></label><label>다음 확인일·Follow-up Date<input name="next_check_date" type="date"></label>
+            <label>협조부서<input name="cooperation_department" maxlength="200"></label><label>협조 요청내용<input name="cooperation_request" maxlength="1000"></label><label>보류 사유<input name="hold_reason" maxlength="1000"></label><label>재검토일<input name="review_date" type="date"></label>
+            <label class="check-field"><input name="hard_deadline_enabled" type="checkbox"><span>Hard Deadline 적용</span></label><label>Hard Deadline<input name="hard_deadline_date" type="date" disabled></label>
+            <label>개별 점검주기(일)<input name="review_cycle_days_override" type="number" min="0" placeholder="비우면 업무유형 기준"></label><label>일반기한 임박기준 D-<input name="due_soon_days_override" type="number" min="0" placeholder="비우면 업무유형 기준"></label><label>Hard Deadline 임박기준 D-<input name="hard_deadline_soon_days_override" type="number" min="0" placeholder="비우면 업무유형 기준"></label>
+            <label class="check-field"><input name="ceo_directive" type="checkbox"><span>CEO / 본부장 지시업무</span></label><label>지시일<input name="directive_date" type="date" disabled></label><label>지시 구분<select name="directive_type" disabled><option value="ceo">CEO 지시</option><option value="division_head">본부장 지시</option><option value="other">기타 지시</option></select></label><label>지시자<select name="directed_by_user_id" disabled><option value="">미지정</option></select></label><label class="full">지시 메모<input name="directive_note" maxlength="1000" disabled></label>
+            <label class="check-field"><input name="blocker_active" type="checkbox"><span>현재 Blocker 있음</span></label><label>Blocker 구분<select name="blocker_category" disabled><option value="">선택</option><option value="customer">Customer</option><option value="regulatory">Regulatory</option><option value="commercial">Commercial</option><option value="internal">Internal</option><option value="external">External</option><option value="other">Other</option></select></label><label>Blocker 담당자<select name="blocker_owner_id" disabled><option value="">미지정</option></select></label><label>Blocker 시작일<input name="blocker_since" type="date" disabled></label><label class="full">Blocker 내용<textarea name="blocker_description" rows="2" maxlength="2000" disabled></textarea></label>
+            <label class="full">기존 상세내용<textarea name="legacy_description" rows="3" readonly></textarea></label><label class="full">비고<textarea name="notes" rows="2" maxlength="3000"></textarea></label>
+          </div>
+        </details>
+      </div>
+      <p class="form-hint">Stage는 업무 흐름, Action은 지금 해야 할 행동, Milestone은 중요 체크포인트로 각각 분리해서 관리합니다.</p>
+      <p id="majorTaskFormError" class="form-error"></p>
+      <div class="modal-actions"><button id="majorTaskFormCancel" class="btn outline" type="button">취소</button><button class="btn primary" type="submit">저장</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="majorTaskDetailDialog" class="modal major-task-detail-dialog">
+    <div class="modal-head"><div><p class="eyebrow dark">MAJOR TASK DETAIL</p><h2 id="majorTaskDetailTitle">주요업무 상세</h2><p id="majorTaskDetailMeta"></p></div><button class="icon-btn" data-close-dialog="majorTaskDetailDialog" type="button">×</button></div>
+    <div id="majorTaskDetailContent"><div class="empty-state">상세정보를 불러오는 중입니다.</div></div>
+    <div class="modal-actions"><button id="majorTaskDetailEdit" class="btn primary hidden" type="button">수정</button><button class="btn outline" data-close-dialog="majorTaskDetailDialog" type="button">닫기</button></div>
+  </dialog>
+
+  <dialog id="majorTaskQuickDialog" class="modal compact">
+    <form id="majorTaskQuickForm">
+      <div class="modal-head"><div><p class="eyebrow dark">TASK UPDATE</p><h2 id="majorTaskQuickTitle">진행이력 추가</h2></div><button class="icon-btn" data-close-dialog="majorTaskQuickDialog" type="button">×</button></div>
+      <input name="mode" type="hidden"><input name="task_id" type="hidden"><input name="parent_id" type="hidden">
+      <div id="majorTaskQuickFields" class="form-grid two"></div>
+      <p id="majorTaskQuickError" class="form-error"></p>
+      <div class="modal-actions"><button class="btn outline" data-close-dialog="majorTaskQuickDialog" type="button">취소</button><button class="btn primary" type="submit">저장</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="majorTaskWorkstreamDialog" class="modal major-workstream-dialog">
+    <div class="modal-head"><div><p class="eyebrow dark">WORK TYPE SETTINGS</p><h2>업무유형·템플릿 관리</h2><p>사용 중인 업무유형은 삭제하지 않고 사용중지합니다. 템플릿 변경은 기존 업무에 영향을 주지 않습니다.</p></div><button class="icon-btn" data-close-dialog="majorTaskWorkstreamDialog" type="button">×</button></div>
+    <div id="majorTaskWorkstreamContent"></div>
+    <div class="modal-actions"><button id="majorTaskWorkstreamAdd" class="btn primary" type="button">+ 업무유형 추가</button><button class="btn outline" data-close-dialog="majorTaskWorkstreamDialog" type="button">닫기</button></div>
+  </dialog>
+
+  <dialog id="majorTaskSectionDialog" class="modal major-section-dialog">
+    <div class="modal-head"><div><p class="eyebrow dark">MAJOR TASK SECTIONS</p><h2>Section 관리</h2><p>Major Task 화면 안에서만 사용하는 사용자 정의 그룹입니다.</p></div><button class="icon-btn" data-close-dialog="majorTaskSectionDialog" type="button">×</button></div>
+    <form id="majorTaskSectionCreateForm" class="major-section-create-form">
+      <label>새 Section 이름<input name="name" required maxlength="80" placeholder="예: 사우디 프로젝트"></label>
+      <button class="btn primary" type="submit">생성</button>
+    </form>
+    <p id="majorTaskSectionError" class="form-error" role="alert" aria-live="assertive"></p>
+    <div id="majorTaskSectionContent" class="major-section-list"></div>
+    <div class="modal-actions"><button class="btn outline" data-close-dialog="majorTaskSectionDialog" type="button">닫기</button></div>
+  </dialog>
+
+  <script src="/assets/searchable-picker.js?v=2026.09.16.customer-commercial-context-v2" defer></script>
+  <script src="/assets/commercial-context-ui.js?v=2026.09.16.customer-commercial-context-v2" defer></script>
+  <script src="/assets/monthly-sales-fcst.js?v=2026.09.16.customer-commercial-context-v2" defer></script>
+  <script src="/assets/customer-master.js?v=2026.09.16.customer-commercial-context-v2" defer></script>
+  <script src="/assets/major-tasks.js?v=2026.09.15.major-task-compact-ux-custom-section-v1" defer></script>
+  <script src="/assets/app.js?v=2026.09.16.customer-commercial-context-v2" defer></script>
+</body>
+</html>
