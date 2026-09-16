@@ -34,15 +34,27 @@ def database_restore_chunk():
     ensure_db_dir()
     upload_path = f"{DB_PATH}.restore-upload"
     if offset == 0:
-        mode = "wb"
+        with open(upload_path, "wb") as upload_file:
+            upload_file.write(chunk)
+            upload_file.flush()
+            os.fsync(upload_file.fileno())
     else:
-        if not os.path.exists(upload_path) or os.path.getsize(upload_path) != offset:
+        if not os.path.exists(upload_path):
             return jsonify(error="restore offset mismatch"), 409
-        mode = "ab"
-    with open(upload_path, mode) as upload_file:
-        upload_file.write(chunk)
-        upload_file.flush()
-        os.fsync(upload_file.fileno())
+        existing_size = os.path.getsize(upload_path)
+        if existing_size == offset:
+            with open(upload_path, "ab") as upload_file:
+                upload_file.write(chunk)
+                upload_file.flush()
+                os.fsync(upload_file.fileno())
+        elif existing_size == offset + len(chunk):
+            with open(upload_path, "rb") as upload_file:
+                upload_file.seek(offset)
+                existing_chunk = upload_file.read(len(chunk))
+            if not hmac.compare_digest(existing_chunk, chunk):
+                return jsonify(error="restore duplicate chunk mismatch"), 409
+        else:
+            return jsonify(error="restore offset mismatch", received=existing_size), 409
     current_size = os.path.getsize(upload_path)
     if current_size < total_size:
         return jsonify(status="uploading", received=current_size, total=total_size)
