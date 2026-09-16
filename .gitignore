@@ -1,0 +1,14 @@
+.env
+__pycache__/
+*.pyc
+.pytest_cache/
+user_data/
+data/bootstrap/
+data/source/
+data/*.db
+*.db
+*.sqlite
+*.sqlite3
+*.log
+admin_reset_trigger.txt
+
