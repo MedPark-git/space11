@@ -1,0 +1,15 @@
+.searchable-picker-native{position:absolute!important;width:1px!important;height:1px!important;opacity:0!important;pointer-events:none!important}
+.searchable-picker{position:relative;min-width:0;font:inherit}
+.searchable-picker-control{min-height:42px;border:1px solid var(--border,#cbd5e1);border-radius:10px;background:var(--surface,#fff);display:flex;align-items:center;gap:6px;padding:5px 36px 5px 8px;position:relative;transition:border-color .15s,box-shadow .15s}
+.searchable-picker:focus-within .searchable-picker-control,.searchable-picker.is-open .searchable-picker-control{border-color:#0f766e;box-shadow:0 0 0 3px rgba(15,118,110,.14)}
+.searchable-picker-chips{display:flex;flex-wrap:wrap;gap:4px;max-width:100%}
+.searchable-picker-chip{display:inline-flex;align-items:center;gap:4px;background:#e6f4f1;color:#075e56;border:1px solid #a7d8ce;border-radius:999px;padding:3px 7px;font-size:.82rem;line-height:1.3}
+.searchable-picker-chip button{border:0;background:transparent;color:inherit;padding:0;line-height:1;cursor:pointer;font-size:1rem}
+.searchable-picker-input{border:0!important;box-shadow:none!important;outline:0!important;background:transparent!important;padding:4px 2px!important;min-width:100px;flex:1;height:30px!important}
+.searchable-picker-toggle{position:absolute;right:5px;top:5px;width:30px;height:30px;border:0;background:transparent;border-radius:7px;color:#475569;cursor:pointer}
+.searchable-picker-list{display:none;position:absolute;z-index:1400;left:0;right:0;top:calc(100% + 5px);max-height:240px;overflow:auto;background:#fff;color:#172033;border:1px solid #cbd5e1;border-radius:10px;padding:5px;box-shadow:0 14px 32px rgba(15,23,42,.18)}
+.searchable-picker.is-open .searchable-picker-list{display:block}
+.searchable-picker-option{display:block;width:100%;border:0;background:transparent;color:inherit;text-align:left;padding:9px 10px;border-radius:7px;cursor:pointer;font:inherit}
+.searchable-picker-option:hover,.searchable-picker-option.is-active{background:#e6f4f1;color:#075e56}
+.searchable-picker-empty{padding:12px;color:#64748b;font-size:.86rem}
+.searchable-picker.is-disabled{opacity:.65;pointer-events:none}
