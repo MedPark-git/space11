@@ -13,6 +13,7 @@ from flask import g, jsonify, request
 
 from major_tasks_migration import MAJOR_TASKS_SCHEMA_VERSION
 from maps_taxonomy import PARENT_BUSINESS_AREAS
+import stage_work_items as stage_work
 
 
 SEOUL = ZoneInfo("Asia/Seoul")
@@ -1579,6 +1580,9 @@ def _validate_stage_pipeline_input(db, data, task_id=None):
             if stage["completed_at"]:
                 raise ValueError("완료된 Stage는 Current Stage로 지정할 수 없습니다.")
             stage["status"] = "active"
+    for removed_id in set(existing) - existing_ids:
+        if stage_work.stage_has_work(db, removed_id):
+            raise ValueError("세부업무 이력이 있는 Stage는 삭제할 수 없습니다.")
     return normalized, current_key
 
 
@@ -2103,6 +2107,7 @@ def _audit(audit_fn, action, entity, entity_id, summary, before=None, after=None
 
 
 def register_major_tasks(app, get_db, role_required, csrf_required, audit_fn):
+    stage_work.register(app, get_db, role_required, csrf_required, audit_fn)
     @app.get("/api/major-tasks/meta")
     @role_required(*READ_ROLES)
     def major_tasks_meta():
@@ -2353,6 +2358,7 @@ def register_major_tasks(app, get_db, role_required, csrf_required, audit_fn):
             item["effective_deadline"] or "9999-12-31", item["directive_date"] or "9999-12-31",
         ))
         directives = directives[:50]
+        stage_work.add_list_summaries(db, items, _today())
         return jsonify(
             items=items,
             directives=directives,
@@ -2541,6 +2547,8 @@ def register_major_tasks(app, get_db, role_required, csrf_required, audit_fn):
                ORDER BY occurred_at DESC LIMIT 200""",
             (task_id, task_id),
         )]
+        item["stage_work_items"] = stage_work.detail_items(db, task_id, _today())
+        item["work_item_contacts"] = stage_work.contacts(db, task)
         return jsonify(task=item)
 
     @app.patch("/api/major-tasks/<task_id>")
@@ -2682,6 +2690,8 @@ def register_major_tasks(app, get_db, role_required, csrf_required, audit_fn):
             return jsonify(error="Stage를 수정할 권한이 없습니다."), 403
         try:
             expected = _version(data); values = _validate_stage_input(db, data, stage)
+            if values["status"] == "inactive" and stage_work.stage_has_work(db, stage_id):
+                raise ValueError("세부업무 이력이 있는 Stage는 삭제할 수 없습니다.")
         except ValueError as exc:
             return jsonify(error=str(exc)), 400
         assignee_ids = values.pop("_assignee_ids")
@@ -2733,6 +2743,8 @@ def register_major_tasks(app, get_db, role_required, csrf_required, audit_fn):
         task = _task_row(db, stage["task_id"])
         if not _can_structure(db, task, g.current_user):
             return jsonify(error="Stage를 종료할 권한이 없습니다."), 403
+        if stage_work.stage_has_work(db, stage_id):
+            return jsonify(error="세부업무 이력이 있는 Stage는 삭제할 수 없습니다.", code="STAGE_HAS_WORK_ITEMS"), 409
         try:
             expected = _version(data)
         except ValueError as exc:
