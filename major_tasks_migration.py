@@ -552,6 +552,8 @@ def apply_major_tasks_schema(db, now_fn):
         if row:
             if row["checksum"] != MAJOR_TASKS_SCHEMA_CHECKSUM:
                 raise RuntimeError("주요업무 마이그레이션 체크섬이 일치하지 않습니다.")
+            from stage_work_items import init_schema
+            init_schema(db, now_fn)
             return False
     db.execute("SAVEPOINT major_tasks_schema_v2")
     try:
@@ -614,6 +616,8 @@ def apply_major_tasks_schema(db, now_fn):
         db.execute("ROLLBACK TO SAVEPOINT major_tasks_schema_v2")
         db.execute("RELEASE SAVEPOINT major_tasks_schema_v2")
         raise
+    from stage_work_items import init_schema
+    init_schema(db, now_fn)
     return True
 
 
