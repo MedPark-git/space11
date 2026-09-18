@@ -52,6 +52,7 @@ from major_tasks_migration import (
     apply_major_tasks_legacy_migration,
     apply_major_tasks_schema,
 )
+from stage_work_items import VERSION as STAGE_WORK_ITEMS_SCHEMA_VERSION
 from maps_taxonomy import PARENT_BUSINESS_AREAS
 
 
@@ -6893,6 +6894,7 @@ def release_schema_is_ready():
             "major_task_checklists",
             "major_task_stages",
             "major_task_stage_people",
+            "major_task_stage_work_items",
             "major_task_balls",
             "major_task_ball_history",
             "major_task_progress_updates",
@@ -6977,7 +6979,11 @@ def release_schema_is_ready():
                 "SELECT 1 FROM major_task_schema_migrations WHERE version=?",
                 (MAJOR_TASKS_LEGACY_MIGRATION_VERSION,),
             ).fetchone() is not None
-            major_tasks_ready = schema_ready and legacy_ready
+            stage_work_ready = db.execute(
+                "SELECT 1 FROM major_task_schema_migrations WHERE version=?",
+                (STAGE_WORK_ITEMS_SCHEMA_VERSION,),
+            ).fetchone() is not None
+            major_tasks_ready = schema_ready and legacy_ready and stage_work_ready
         erp_sync_columns = {
             row[1] for row in db.execute("PRAGMA table_info(erp_sync_runs)").fetchall()
         } if "erp_sync_runs" in tables else set()
