@@ -292,3 +292,33 @@
 @media (max-width:720px){.major-task-summary{grid-template-columns:repeat(2,1fr)}.major-task-filter-grid{grid-template-columns:1fr 1fr}.major-task-filter-grid input{grid-column:1/-1}.major-task-filter-grid .btn{grid-column:1/-1}.major-task-viewbar{align-items:flex-start;flex-direction:column}.major-directive-list,.major-card-grid{grid-template-columns:1fr}.major-detail-overview{grid-template-columns:1fr}.major-kanban{grid-template-columns:repeat(3,260px)}.major-task-dialog,.major-task-detail-dialog{width:calc(100vw - 16px)}.major-task-form-grid{grid-template-columns:1fr}.major-task-form-grid .full{grid-column:auto}.major-template-row{grid-template-columns:90px 1fr}.major-template-row select,.major-template-row label,.major-template-row button{grid-column:2}.major-ball-list{grid-template-columns:1fr}.major-progress-state{grid-template-columns:1fr}.major-progress-state .full{grid-column:auto}}
 @media (max-width:720px){.major-detail-copy{grid-template-columns:1fr}}
 @media (max-width:720px){.major-form-section{padding:11px}.major-compact-grid{grid-template-columns:1fr}.major-compact-wide{grid-column:auto}.major-stage-builder-toolbar{align-items:stretch;flex-direction:column}.major-stage-builder-toolbar>label{width:100%}.major-stage-count{align-self:flex-start}.major-stage-builder-card{flex-basis:250px;width:250px}.major-stage{width:190px}.major-stage-insert{width:44px;flex-basis:44px}.major-stage-arrow{padding:0 7px}.major-advanced-settings>summary{align-items:flex-start;flex-direction:column}.major-stage-section-head{align-items:flex-start;flex-direction:column}.major-section-row{grid-template-columns:auto 1fr}.major-section-row-actions{grid-column:1/-1}.major-section-create-form{grid-template-columns:1fr}.major-inline-section-create{grid-template-columns:1fr 1fr}.major-inline-section-create input,.major-inline-section-create .form-error{grid-column:1/-1}}
+
+/* Stage execution items and main Due board; independent of Task RAG. */
+.major-work-board {margin:16px 0;padding:18px;background:#f4f7fa;border:1px solid #dce5ec;border-radius:12px}
+.major-work-board-head {display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+.major-work-board-head h3,.major-work-due-card h4 {margin:0 0 5px}
+.major-work-board-grid {display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.major-work-due-card {background:#fff;border:1px solid #dce5ec;border-radius:10px;padding:14px;min-width:0}
+.major-work-due-card.overdue {border-top:3px solid #b5463c}
+.major-work-due-card.upcoming {border-top:3px solid #b68124}
+.major-work-link {display:flex;flex-direction:column;gap:4px;text-align:left;width:100%;padding:9px 6px;border:0;border-bottom:1px solid #e7ecf0;background:transparent;color:inherit;cursor:pointer;font:inherit;overflow-wrap:anywhere}
+.major-work-link:hover,.major-work-link:focus-visible {background:#edf4f7;outline:2px solid #537b90;outline-offset:-2px}
+.major-work-link small,.major-work-link span {font-size:11px;color:#526575}
+.major-work-link.overdue small {color:#a13328}
+.major-work-summary {min-width:230px;max-width:300px;font-size:12px}
+.major-work-items {padding:16px;border:1px solid #dce5ec;border-radius:10px;margin:12px 0}
+.major-work-row {display:grid;grid-template-columns:minmax(190px,2fr) minmax(145px,1fr) minmax(180px,1.3fr) 135px 90px minmax(130px,1fr);gap:10px;padding:12px 8px;border-bottom:1px solid #e1e8ed;align-items:start;min-width:900px}
+.major-work-items>div:not(.major-work-board-head),.major-work-completed {overflow-x:auto}
+.major-work-row label,.major-work-assignee {display:flex;flex-direction:column;gap:5px;font-size:11px;color:#526575;min-width:0}
+.major-work-row label>span {color:#17374a;font-size:13px;padding-top:8px}
+.major-work-row input,.major-work-row select {width:100%;min-width:0;box-sizing:border-box;font-size:12px}
+.major-work-row .major-people-empty,.major-work-row .major-people-overlap:empty {display:none}
+.major-work-controls {display:flex;flex-wrap:wrap;gap:5px;padding-top:18px}
+.major-work-error {grid-column:1/-1;color:#a13328;margin:0;font-size:12px}
+.major-work-error:empty {display:none}
+.major-work-completed {margin-top:12px}
+.major-stage.work-selected {outline:3px solid #167084;outline-offset:2px;background:#eef8fa}
+.work-highlight {outline:3px solid #d49220;outline-offset:-3px;background:#fff8e4}
+.major-work-row.overdue {border-left:3px solid #b5463c}
+.major-task-operational-table {min-width:1770px}
+@media(max-width:800px){.major-work-board-grid{grid-template-columns:1fr}.major-work-board{padding:12px}.major-work-board-head{align-items:flex-start}.major-work-items{padding:10px}}
