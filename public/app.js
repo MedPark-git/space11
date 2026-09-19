@@ -129,6 +129,7 @@ const statusLabels = {
 };
 
 const viewTitles = {
+  exhibition: ["EXHIBITION OPERATIONS", "전시회"],
   overview: ["GLOBAL BUSINESS CONTROL TOWER", "종합 현황"],
   daily: ["DAILY SALES & OPERATIONS HUDDLE", "오늘·아침회의"],
   forecast: ["FORECAST CONTROL · 1ST / 2ND / 3RD CLOSE", "월별 FCST"],
@@ -481,6 +482,7 @@ async function loadAll() {
     state.exchangeRates = exchangeRates;
     state.mapData = mapResult.data || null;
     if (window.MajorTasksUI) window.MajorTasksUI.init({ api, state, escapeHtml, formatDate, formatNumber, toast });
+    if (window.ExhibitionsUI) window.ExhibitionsUI.init({ api, state, escapeHtml, toast });
     renderOverview();
     renderForecast();
     renderForecastRounds();
@@ -834,6 +836,7 @@ function switchView(requestedView) {
   if (isRecord) renderRecordView();
   if (isMajorTasks && window.MajorTasksUI) window.MajorTasksUI.load();
   if (isCustomerMaster && window.CustomerMasterUI) window.CustomerMasterUI.load();
+  if (view === "exhibition" && window.ExhibitionsUI) window.ExhibitionsUI.load();
   if (view === "daily") renderDaily();
   if (view === "forecast") renderForecast();
   if (view === "forecast_rounds") renderForecastRounds();
