@@ -3,6 +3,8 @@ import functools
 import hashlib
 import json
 import uuid
+from datetime import timedelta
+import major_task_documents as documents
 from flask import g, jsonify, request
 import major_tasks as mt
 import stage_work_items as work
@@ -47,14 +49,14 @@ CHECKSUM=hashlib.sha256('\n'.join(DDL).encode()).hexdigest()
 
 def schema_ready(db):
     row=db.execute('SELECT checksum FROM major_task_schema_migrations WHERE version=?',(VERSION,)).fetchone()
-    return bool(row and row[0]==CHECKSUM)
+    return bool(row and row[0]==CHECKSUM) and documents.schema_ready(db)
 
 
 def init_schema(db,now_fn):
     row=db.execute('SELECT checksum FROM major_task_schema_migrations WHERE version=?',(VERSION,)).fetchone()
     if row:
         if row[0]!=CHECKSUM:raise RuntimeError('Report migration checksum mismatch')
-        return False
+        return documents.init_schema(db,now_fn)
     db.execute('SAVEPOINT report_schema')
     try:
         for sql in DDL:db.execute(sql)
@@ -62,6 +64,7 @@ def init_schema(db,now_fn):
         db.execute('RELEASE report_schema')
     except Exception:
         db.execute('ROLLBACK TO report_schema');db.execute('RELEASE report_schema');raise
+    documents.init_schema(db,now_fn)
     return True
 
 
@@ -97,15 +100,17 @@ def draft_detail(db,report):
     if report['status']=='final':
         return {'report':{k:v for k,v in report.items() if k!='snapshot_json'},'snapshot':json.loads(report['snapshot_json']),'items':[]}
     items=[]
-    for row in db.execute('SELECT * FROM major_task_report_items WHERE report_id=? ORDER BY sort_order,id',(report['id'],)):
+    for row in db.execute('SELECT * FROM major_task_report_items WHERE report_id=? AND is_active=1 ORDER BY sort_order,id',(report['id'],)):
         item=dict(row);item['work_items']=json.loads(item.pop('work_items_json'));item['task']=live_task(db,item['task_id'])
         item['comments']=[dict(r) for r in db.execute('SELECT c.*,u.display_name AS author_name FROM major_task_report_comments c JOIN users u ON u.id=c.created_by WHERE c.report_item_id=? ORDER BY c.created_at,c.id',(item['id'],))]
+        item['documents']=documents.linked(db,item['id'])
         items.append(item)
     report.pop('snapshot_json')
     return {'report':report,'items':items}
 
 
 def register(app,get_db,role_required,csrf_required,audit_fn):
+    documents.register(app,get_db,role_required,csrf_required,audit_fn)
     def guarded(fn):
         @functools.wraps(fn)
         def call(*a,**kw):
@@ -132,10 +137,33 @@ def register(app,get_db,role_required,csrf_required,audit_fn):
     @app.get('/api/major-task-reports/candidates')
     @role_required(*mt.READ_ROLES)
     def candidates():
-        rows=get_db().execute('''SELECT t.id,t.title,t.parent_task_id,t.final_rag,t.status,u.display_name AS owner_name,
-            s.name AS current_stage_name FROM major_tasks t LEFT JOIN users u ON u.id=t.owner_id
-            LEFT JOIN major_task_stages s ON s.id=t.current_stage_id WHERE t.status<>'cancelled' ORDER BY t.title,t.id''')
-        return jsonify(items=[dict(r) for r in rows])
+        db=get_db();rows=[dict(r) for r in db.execute("SELECT t.id,t.title,t.parent_task_id,t.section_id,t.final_rag,t.status,u.display_name AS owner_name,s.name AS current_stage_name FROM major_tasks t LEFT JOIN users u ON u.id=t.owner_id LEFT JOIN major_task_stages s ON s.id=t.current_stage_id ORDER BY t.title,t.id")]
+        by_id={r['id']:r for r in rows};sections={r['id']:r['name'] for r in db.execute('SELECT id,name FROM major_task_sections')}
+        work_by={}
+        for w in db.execute("SELECT task_id,status,target_due_date,report_required,decision_required FROM major_task_stage_work_items WHERE status<>'cancelled'"):
+            work_by.setdefault(w['task_id'],[]).append(dict(w))
+        today=mt._today();bounds={'today':today.isoformat(),'tomorrow':(today+timedelta(days=1)).isoformat(),'week_end':(today+timedelta(days=6-today.weekday())).isoformat()}
+        mode=request.args.get('due_mode','');day=request.args.get('due_date','');quick=request.args.get('quick','')
+        if quick:
+            if quick not in ('today','tomorrow','week','overdue'):return jsonify(error='기한 조건을 확인하세요.'),400
+            mode='overdue' if quick=='overdue' else 'until';day=bounds['week_end' if quick=='week' else quick] if quick!='overdue' else bounds['today']
+        if mode not in ('','on','until','overdue'):return jsonify(error='기한 조건을 확인하세요.'),400
+        if mode in ('on','until'):
+            try:day=mt._date(day,'세부업무 목표기한')
+            except ValueError:return jsonify(error='날짜를 확인하세요.'),400
+            if not day:return jsonify(error='날짜를 선택하세요.'),400
+        term=request.args.get('search','').strip().casefold();result=[]
+        for row in rows:
+            if row['status']=='cancelled':continue
+            path=[];seen=set();node=row
+            while node and node['id'] not in seen:
+                seen.add(node['id']);path.append(node);node=by_id.get(node['parent_task_id'])
+            path.reverse();ws=work_by.get(row['id'],[]);dates=sorted({w['target_due_date'] for w in ws if w['status']=='open' and w['target_due_date']})
+            row.update(hierarchy_path=[dict(id=n['id'],title=n['title']) for n in path],section_name=sections.get(path[0]['section_id'],'미분류'),open_due_dates=dates,next_work_due=dates[0] if dates else None,report_required=any(w['report_required'] for w in ws),decision_required=any(w['decision_required'] for w in ws))
+            if term and term not in ' '.join([row['title'],row['owner_name'] or '',row['section_name'],*[n['title'] for n in path]]).casefold():continue
+            if mode and not any(d==day if mode=='on' else d<=day if mode=='until' else d<bounds['today'] for d in dates):continue
+            result.append(row)
+        return jsonify(items=result,date_context=bounds)
 
     @app.get('/api/major-task-reports')
     @role_required(*mt.READ_ROLES)
@@ -173,7 +201,7 @@ def register(app,get_db,role_required,csrf_required,audit_fn):
     def item_update(report_id,item_id):
         data=payload();r,error=lock(report_id,data)
         if error:return error
-        db=get_db();row=db.execute('SELECT * FROM major_task_report_items WHERE id=? AND report_id=?',(item_id,report_id)).fetchone()
+        db=get_db();row=db.execute('SELECT * FROM major_task_report_items WHERE id=? AND report_id=? AND is_active=1',(item_id,report_id)).fetchone()
         if not row:db.rollback();return jsonify(error='보고 항목을 찾을 수 없습니다.'),404
         report_text=text_field(data,'report_text',row['report_text']);decision_text=text_field(data,'decision_text',row['decision_text'])
         chosen=data.get('work_items',json.loads(row['work_items_json']))
@@ -201,7 +229,7 @@ def register(app,get_db,role_required,csrf_required,audit_fn):
         r,error=lock(report_id,data)
         if error:return error
         db=get_db()
-        if not db.execute('SELECT 1 FROM major_task_report_items WHERE id=? AND report_id=?',(item_id,report_id)).fetchone():db.rollback();return jsonify(error='보고 항목을 찾을 수 없습니다.'),404
+        if not db.execute('SELECT 1 FROM major_task_report_items WHERE id=? AND report_id=? AND is_active=1',(item_id,report_id)).fetchone():db.rollback();return jsonify(error='보고 항목을 찾을 수 없습니다.'),404
         now=mt._now();actor=g.current_user['id'];cid=uuid.uuid4().hex
         db.execute('INSERT INTO major_task_report_comments(id,report_item_id,body,created_by,updated_by,created_at,updated_at) VALUES(?,?,?,?,?,?,?)',(cid,item_id,body,actor,actor,now,now));bump(db,r);emit('COMMENT_CREATE',report_id,None,dict(id=cid,report_item_id=item_id,body=body,author_id=actor));db.commit()
         return jsonify(**draft_detail(db,db.execute('SELECT * FROM major_task_reports WHERE id=?',(report_id,)).fetchone())),201
@@ -214,6 +242,8 @@ def register(app,get_db,role_required,csrf_required,audit_fn):
         data=payload();r,error=lock(report_id,data)
         if error:return error
         db=get_db();detail=draft_detail(db,r);now=mt._now()
+        if not detail['items']:raise ValueError('보고할 업무를 먼저 추가하세요.')
+        if any(not d['is_active'] for i in detail['items'] for d in i['documents']):raise ValueError('사용중지된 문서의 연결을 해제하거나 새 버전을 선택하세요.')
         snapshot={'title':r['title'],'report_date':r['report_date'],'created_at':r['created_at'],'completed_at':now,'created_by':r['created_by'],'completed_by':g.current_user['id'],'items':detail['items']}
         for item in snapshot['items']:
             # Keep the existing snapshot envelope and candidate API. Decisions are
@@ -235,3 +265,86 @@ def register(app,get_db,role_required,csrf_required,audit_fn):
         db.execute("UPDATE major_task_reports SET status='final',snapshot_json=?,completed_at=?,version=version+1,updated_by=?,updated_at=? WHERE id=?",(dump(snapshot),now,g.current_user['id'],now,report_id))
         emit('FINALIZE',report_id,{'status':'draft','version':r['version']},{'status':'final','snapshot_sha256':hashlib.sha256(dump(snapshot).encode()).hexdigest()});db.commit()
         return jsonify(**draft_detail(db,db.execute('SELECT * FROM major_task_reports WHERE id=?',(report_id,)).fetchone()))
+
+    def current_detail(db,rid):
+        return jsonify(**draft_detail(db,db.execute('SELECT * FROM major_task_reports WHERE id=?',(rid,)).fetchone()))
+    def active_item(db,rid,iid):
+        return db.execute('SELECT * FROM major_task_report_items WHERE id=? AND report_id=? AND is_active=1',(iid,rid)).fetchone()
+
+    @app.post('/api/major-task-reports/<report_id>/items')
+    @role_required(*mt.WRITE_ROLES)
+    @csrf_required
+    @guarded
+    def report_items_add(report_id):
+        data=payload();ids=data.get('task_ids')
+        if not isinstance(ids,list) or not ids or len(ids)>100 or any(not isinstance(x,str) for x in ids) or len(set(ids))!=len(ids):raise ValueError('추가할 업무를 선택하세요.')
+        r,error=lock(report_id,data)
+        if error:return error
+        db=get_db();existing={x['task_id'] for x in db.execute('SELECT task_id FROM major_task_report_items WHERE report_id=? AND is_active=1',(report_id,))}
+        if len(existing)+len(ids)>100 or existing.intersection(ids):raise ValueError('이미 포함된 업무이거나 최대 100건을 초과합니다.')
+        pos=db.execute('SELECT COALESCE(MAX(sort_order),-1) FROM major_task_report_items WHERE report_id=?',(report_id,)).fetchone()[0]+1
+        now=mt._now();actor=g.current_user['id']
+        for n,tid in enumerate(ids):
+            t=live_task(db,tid)
+            if t['status']=='cancelled':raise ValueError('취소된 업무는 추가할 수 없습니다.')
+            old=db.execute('SELECT * FROM major_task_report_items WHERE report_id=? AND task_id=?',(report_id,tid)).fetchone()
+            if old:db.execute('UPDATE major_task_report_items SET is_active=1,sort_order=?,version=version+1,updated_by=?,updated_at=? WHERE id=?',(pos+n,actor,now,old['id']))
+            else:db.execute('INSERT INTO major_task_report_items(id,report_id,task_id,work_items_json,sort_order,created_by,updated_by,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?)',(uuid.uuid4().hex,report_id,tid,dump([candidate(w) for w in t['flagged_work_items']]),pos+n,actor,actor,now,now))
+        bump(db,r);emit('ITEM_ADD',report_id,None,dict(task_ids=ids));db.commit();return current_detail(db,report_id),201
+
+    @app.delete('/api/major-task-reports/<report_id>/items/<item_id>')
+    @role_required(*mt.WRITE_ROLES)
+    @csrf_required
+    @guarded
+    def report_item_remove(report_id,item_id):
+        r,error=lock(report_id,payload())
+        if error:return error
+        db=get_db();item=active_item(db,report_id,item_id)
+        if not item:db.rollback();return jsonify(error='보고 항목을 찾을 수 없습니다.'),404
+        db.execute('UPDATE major_task_report_items SET is_active=0,version=version+1,updated_by=?,updated_at=? WHERE id=?',(g.current_user['id'],mt._now(),item_id));bump(db,r);emit('ITEM_REMOVE',report_id,dict(item),dict(id=item_id,is_active=0));db.commit();return current_detail(db,report_id)
+
+    @app.put('/api/major-task-reports/<report_id>/items/reorder')
+    @role_required(*mt.WRITE_ROLES)
+    @csrf_required
+    @guarded
+    def report_item_reorder(report_id):
+        data=payload();r,error=lock(report_id,data)
+        if error:return error
+        db=get_db();ids=data.get('ordered_ids');old=[x[0] for x in db.execute('SELECT id FROM major_task_report_items WHERE report_id=? AND is_active=1 ORDER BY sort_order,id',(report_id,))]
+        if not isinstance(ids,list) or any(not isinstance(x,str) for x in ids) or len(ids)!=len(old) or set(ids)!=set(old):raise ValueError('업무 순서를 다시 확인하세요.')
+        for pos,iid in enumerate(ids):db.execute('UPDATE major_task_report_items SET sort_order=?,version=version+1,updated_by=?,updated_at=? WHERE id=?',(pos,g.current_user['id'],mt._now(),iid))
+        bump(db,r);emit('ITEM_REORDER',report_id,dict(ordered_ids=old),dict(ordered_ids=ids));db.commit();return current_detail(db,report_id)
+
+    @app.patch('/api/major-task-reports/<report_id>/items/<item_id>/comments/<comment_id>')
+    @role_required(*mt.WRITE_ROLES)
+    @csrf_required
+    @guarded
+    def report_comment_update(report_id,item_id,comment_id):
+        data=payload();body=text_field(data,'body',limit=3000)
+        if not body:raise ValueError('담당자 코멘트를 입력하세요.')
+        r,error=lock(report_id,data)
+        if error:return error
+        db=get_db();old=db.execute('SELECT * FROM major_task_report_comments WHERE id=? AND report_item_id=?',(comment_id,item_id)).fetchone()
+        if not active_item(db,report_id,item_id) or not old:db.rollback();return jsonify(error='코멘트를 찾을 수 없습니다.'),404
+        if old['created_by']!=g.current_user['id'] and g.current_user['role'] not in ('admin','manager'):db.rollback();return jsonify(error='본인 코멘트만 수정할 수 있습니다.'),403
+        db.execute('UPDATE major_task_report_comments SET body=?,version=version+1,updated_by=?,updated_at=? WHERE id=?',(body,g.current_user['id'],mt._now(),comment_id));bump(db,r);emit('COMMENT_UPDATE',report_id,dict(old),dict(id=comment_id,body=body));db.commit();return current_detail(db,report_id)
+
+    @app.put('/api/major-task-reports/<report_id>/items/<item_id>/documents')
+    @role_required(*mt.WRITE_ROLES)
+    @csrf_required
+    @guarded
+    def report_document_links(report_id,item_id):
+        data=payload();ids=data.get('document_ids')
+        if not isinstance(ids,list) or len(ids)>100 or any(not isinstance(x,str) for x in ids) or len(ids)!=len(set(ids)):raise ValueError('문서 선택을 확인하세요.')
+        r,error=lock(report_id,data)
+        if error:return error
+        db=get_db();item=active_item(db,report_id,item_id)
+        if not item:db.rollback();return jsonify(error='보고 항목을 찾을 수 없습니다.'),404
+        for did in ids:
+            if not db.execute('SELECT 1 FROM major_task_documents WHERE id=? AND task_id=? AND is_active=1',(did,item['task_id'])).fetchone():raise ValueError('같은 업무의 사용 가능한 문서를 선택하세요.')
+        old={x[0] for x in db.execute('SELECT document_id FROM major_task_report_documents WHERE report_item_id=?',(item_id,))};new=set(ids)
+        for did in old-new:
+            db.execute('DELETE FROM major_task_report_documents WHERE report_item_id=? AND document_id=?',(item_id,did));emit('DOCUMENT_UNLINK',report_id,dict(item_id=item_id,document_id=did),None)
+        for did in new-old:
+            db.execute('INSERT INTO major_task_report_documents VALUES(?,?,?,?)',(item_id,did,g.current_user['id'],mt._now()));emit('DOCUMENT_LINK',report_id,None,dict(item_id=item_id,document_id=did))
+        bump(db,r);db.commit();return current_detail(db,report_id)
