@@ -9,6 +9,7 @@ import re
 import secrets
 import sqlite3
 import exhibitions
+import major_task_reports
 import string
 import threading
 import time
@@ -77,7 +78,7 @@ PACKAGED_DB_CRITICAL_COUNTS = {
     "records": 486,
     "shipments": 12309,
 }
-APP_VERSION = "2026.09.19.exhibition-operations-v1"
+APP_VERSION = "2026.09.20.major-task-reports-calendar-v2"
 SHIPMENT_METADATA_VERSION = 4
 SHIPMENT_METADATA_ACTION_KEY = "shipment-metadata:2026-09-09-v4"
 ERP_ACTUAL_MAPPING_EVIDENCE = {
@@ -973,6 +974,7 @@ def init_db():
         init_commercial_context_schema(db, utc_now)
         apply_major_tasks_schema(db, utc_now)
         exhibitions.init_schema(db, utc_now)
+        major_task_reports.init_schema(db, utc_now)
         user_columns = {row["name"] for row in db.execute("PRAGMA table_info(users)").fetchall()}
         if "must_change_password" not in user_columns:
             db.execute("ALTER TABLE users ADD COLUMN must_change_password INTEGER NOT NULL DEFAULT 0")
@@ -7037,6 +7039,7 @@ def release_schema_is_ready():
             and {"interim_product_code", "source_type", "source_promotion_id", "source_contract_id", "pricing_source", "commercial_context_json"}.issubset(monthly_sales_columns)
             and commercial_context_ready
             and exhibitions.schema_ready(db)
+            and major_task_reports.schema_ready(db)
             and {
                 "review_cycle_days_override", "due_soon_days_override", "hard_deadline_soon_days_override",
                 "parent_task_id", "current_stage_id", "blocker_active", "blocker_category",
@@ -7150,6 +7153,7 @@ register_major_tasks(
 )
 
 exhibitions.register(app, get_db, role_required, csrf_required, audit, utc_now, os.path.dirname(DB_PATH))
+major_task_reports.register(app, get_db, role_required, csrf_required, audit)
 
 start_database_initialization()
 
