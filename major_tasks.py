@@ -767,7 +767,7 @@ def refresh_major_task_rags(db):
             """INSERT INTO audit_logs
                (occurred_at,actor_user_id,actor_username,action,entity_type,entity_id,summary,before_json,after_json)
                VALUES (?,NULL,'system','MAJOR_TASK_AUTO_RAG_UPDATE','major_task',?,?,?,?)""",
-            (now,task["id"],f"{task['title']} 자동 RAG 재판정",_json(before),_json(after)),
+            (now,task["id"],f"{task['title']} 자동 진행위험도 재판정",_json(before),_json(after)),
         )
         changed += 1
     return changed
@@ -1261,7 +1261,7 @@ def _validate_task_input(db, data, existing=None):
         db, data.get("additional_owner_ids"), "공동 담당자"
     ) if explicit_additional else None
     if additional_owner_ids is not None and owner_id in additional_owner_ids:
-        raise ValueError("대표 책임자를 공동 담당자에 중복 지정할 수 없습니다.")
+        raise ValueError("주담당자를 공동 담당자에 중복 지정할 수 없습니다.")
     deputy = (
         additional_owner_ids[0] if additional_owner_ids
         else None if explicit_additional
@@ -1353,9 +1353,9 @@ def _validate_task_input(db, data, existing=None):
     manual_rag = _clean(manual_rag, 10) or None
     manual_reason = _clean(data.get("manual_rag_reason", existing["manual_rag_reason"] if existing else ""), 500)
     if manual_rag and manual_rag not in RAG_SCORE:
-        raise ValueError("수동 RAG가 올바르지 않습니다.")
+        raise ValueError("수동 진행위험도가 올바르지 않습니다.")
     if manual_rag and not manual_reason:
-        raise ValueError("수동 RAG 변경 사유를 입력하세요.")
+        raise ValueError("수동 진행위험도 변경 사유를 입력하세요.")
     workstream_id = _clean(data.get("workstream_id", existing["workstream_id"] if existing else ""), 32) or None
     if workstream_id and not db.execute("SELECT 1 FROM major_task_workstreams WHERE id=?", (workstream_id,)).fetchone():
         raise ValueError("워크스트림을 찾을 수 없습니다.")
@@ -1706,7 +1706,7 @@ def _replace_task_relations(db, task_id, data, now, actor_id=None):
         ) or []
         task = db.execute("SELECT owner_id FROM major_tasks WHERE id=?", (task_id,)).fetchone()
         if task and task["owner_id"] in additional_owner_ids:
-            raise ValueError("대표 책임자를 공동 담당자에 중복 지정할 수 없습니다.")
+            raise ValueError("주담당자를 공동 담당자에 중복 지정할 수 없습니다.")
         db.execute("DELETE FROM major_task_assignees WHERE task_id=?", (task_id,))
         for user_id in additional_owner_ids:
             db.execute(
@@ -1995,9 +1995,9 @@ def _apply_progress_state_changes(db, task, data, actor_id, now, audit_fn):
             raise ValueError("현재 업무의 활성 미완료 Stage만 선택할 수 있습니다.")
     if rag_value:
         if rag_value not in RAG_SCORE:
-            raise ValueError("RAG 값이 올바르지 않습니다.")
+            raise ValueError("진행위험도 값이 올바르지 않습니다.")
         if not rag_reason:
-            raise ValueError("RAG 변경 사유를 입력하세요.")
+            raise ValueError("진행위험도 변경 사유를 입력하세요.")
     if ball_requested:
         ball_owner_type = _ball_owner_type(ball_type)
         ball_follow_up_date = _date(data.get("ball_follow_up_date"), "Ball Follow-up Date")
@@ -2041,7 +2041,7 @@ def _apply_progress_state_changes(db, task, data, actor_id, now, audit_fn):
         after_rag = {"manual_rag": rag_value, "manual_rag_reason": rag_reason, "final_rag": rag_value}
         changes["rag"] = {"before": before_rag, "after": after_rag}
         _audit(audit_fn, "MAJOR_TASK_RAG_CHANGE", "major_task", task["id"],
-               f"{task['title']} RAG 변경", before_rag, after_rag)
+               f"{task['title']} 진행위험도 변경", before_rag, after_rag)
 
     applied_ball_id = None
     if ball_requested:
@@ -2973,7 +2973,7 @@ def register_major_tasks(app, get_db, role_required, csrf_required, audit_fn):
         )
         canonical_change_requested = state_change_requested or bool(_clean(data.get("next_action"),1000))
         if state_change_requested and not _can_structure(db,task,g.current_user):
-            return jsonify(error="Stage·RAG·Ball 변경은 업무 구조 수정 권한이 필요합니다."),403
+            return jsonify(error="Stage·진행위험도·Ball 변경은 업무 구조 수정 권한이 필요합니다."),403
         if canonical_change_requested:
             try: expected_task_version = _int(data.get("task_version"))
             except ValueError as exc: return jsonify(error=str(exc)),400
