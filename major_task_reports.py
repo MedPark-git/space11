@@ -80,7 +80,7 @@ def live_task(db,task_id):
     item=mt._serialize_task(db,task,False,g.current_user)
     all_work=work.detail_items(db,task_id,mt._today())
     keys=['id','title','owner_name','owner_display','current_stage_name','final_rag','operational_due',
-          'current_target_date','blocker_active','blocker_description','ball_summary','status','version']
+          'current_target_date','blocker_active','blocker_description','ball_summary','status','version','stage_pipeline']
     result={k:item.get(k) for k in keys}
     result['owners']=[{'id':p['user_id'] if 'user_id' in p else p.get('id'),'name':p['display_name'],'is_primary':p['is_primary']} for p in item.get('owners',[])]
     result['open_work_items']=[w for w in all_work if w['status']=='open']
@@ -216,6 +216,18 @@ def register(app,get_db,role_required,csrf_required,audit_fn):
         db=get_db();detail=draft_detail(db,r);now=mt._now()
         snapshot={'title':r['title'],'report_date':r['report_date'],'created_at':r['created_at'],'completed_at':now,'created_by':r['created_by'],'completed_by':g.current_user['id'],'items':detail['items']}
         for item in snapshot['items']:
+            # Keep the existing snapshot envelope and candidate API. Decisions are
+            # captured from the Work Item ledger at finalization, never from a
+            # report-only edited copy; no separate decision field/ledger is added.
+            canonical={w['id']:w for w in item['task']['flagged_work_items']}
+            chosen={w['id']:w for w in item['work_items']}
+            for wid, saved in chosen.items():
+                current=canonical.get(wid,{})
+                saved['decision_required']=current.get('decision_required',0)
+                saved['decision_request']=current.get('decision_request') if saved['decision_required'] else None
+            for wid, current in canonical.items():
+                if wid not in chosen and current['decision_required']:
+                    item['work_items'].append(candidate(current))
             excluded={x['id'] for x in item['work_items'] if not x['include']}
             item['task']['open_work_items']=[x for x in item['task']['open_work_items'] if x['id'] not in excluded]
             item['work_items']=[x for x in item['work_items'] if x['include']]
