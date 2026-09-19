@@ -3,11 +3,13 @@ import hashlib
 import json
 import sqlite3
 import uuid
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
+from zoneinfo import ZoneInfo
 
 from flask import g, jsonify, request
 
-VERSION = "major-tasks-2026-09-18-stage-work-items-v1"
+BASE_VERSION = "major-tasks-2026-09-18-stage-work-items-v1"
+VERSION = "major-tasks-2026-09-20-work-item-reporting-v2"
 BALLS = {"internal": "메드파크 해외영업", "department": "메드파크 타부서", "buyer": "상대측"}
 DDL = (
     """CREATE TABLE IF NOT EXISTS major_task_stage_work_items (
@@ -50,24 +52,85 @@ DDL = (
 )
 
 
+EXTENSIONS = {
+    "completed_on": "TEXT",
+    "report_required": "INTEGER NOT NULL DEFAULT 0 CHECK(report_required IN (0,1))",
+    "decision_required": "INTEGER NOT NULL DEFAULT 0 CHECK(decision_required IN (0,1))",
+    "decision_request": "TEXT",
+}
+PEOPLE_DDL = """CREATE TABLE IF NOT EXISTS major_task_work_item_people (
+ work_item_id TEXT NOT NULL REFERENCES major_task_stage_work_items(id) ON DELETE RESTRICT,
+ user_id INTEGER NOT NULL REFERENCES users(id),
+ sort_order INTEGER NOT NULL DEFAULT 0,
+ created_by INTEGER NOT NULL REFERENCES users(id), created_at TEXT NOT NULL,
+ PRIMARY KEY(work_item_id,user_id))"""
+EXT_CHECKSUM = hashlib.sha256((json.dumps(EXTENSIONS,sort_keys=True)+PEOPLE_DDL).encode()).hexdigest()
+
+
 def init_schema(db, now_fn):
-    checksum = hashlib.sha256("\n".join(DDL).encode()).hexdigest()
+    base_checksum = hashlib.sha256("\n".join(DDL).encode()).hexdigest()
+    base = db.execute("SELECT checksum FROM major_task_schema_migrations WHERE version=?", (BASE_VERSION,)).fetchone()
     row = db.execute("SELECT checksum FROM major_task_schema_migrations WHERE version=?", (VERSION,)).fetchone()
+    if base and base[0] != base_checksum:
+        raise RuntimeError("Stage Work Item migration checksum mismatch")
     if row:
-        if row[0] != checksum:
-            raise RuntimeError("Stage Work Item migration checksum mismatch")
+        if row[0] != EXT_CHECKSUM:
+            raise RuntimeError("Work Item extension migration checksum mismatch")
         return False
     db.execute("SAVEPOINT stage_work_schema")
     try:
-        for statement in DDL:
-            db.execute(statement)
-        db.execute("INSERT INTO major_task_schema_migrations(version,checksum,applied_at) VALUES(?,?,?)", (VERSION, checksum, now_fn()))
+        if not base:
+            for statement in DDL:
+                db.execute(statement)
+            db.execute("INSERT INTO major_task_schema_migrations VALUES(?,?,?)",(BASE_VERSION,base_checksum,now_fn()))
+        columns = {r[1] for r in db.execute("PRAGMA table_info(major_task_stage_work_items)")}
+        for name, spec in EXTENSIONS.items():
+            if name not in columns:
+                db.execute(f"ALTER TABLE major_task_stage_work_items ADD COLUMN {name} {spec}")
+        db.execute(PEOPLE_DDL)
+        db.execute("INSERT INTO major_task_schema_migrations VALUES(?,?,?)",(VERSION,EXT_CHECKSUM,now_fn()))
         db.execute("RELEASE SAVEPOINT stage_work_schema")
     except Exception:
         db.execute("ROLLBACK TO SAVEPOINT stage_work_schema")
         db.execute("RELEASE SAVEPOINT stage_work_schema")
         raise
     return True
+
+
+def project_items(db, rows, today):
+    items = [due_projection(row,today) for row in rows]
+    if not items:
+        return items
+    marks = ",".join("?" for _ in items)
+    people = {}
+    for r in db.execute(f"""SELECT p.work_item_id,p.user_id,u.display_name
+        FROM major_task_work_item_people p JOIN users u ON u.id=p.user_id
+        WHERE p.work_item_id IN ({marks}) ORDER BY p.sort_order,p.user_id""",tuple(i['id'] for i in items)):
+        people.setdefault(r['work_item_id'],[]).append(dict(r))
+    for item in items:
+        assigned = people.get(item['id'],[])
+        if not assigned and item['assignee_user_id']:
+            assigned = [{'user_id':item['assignee_user_id'],'display_name':item.get('assignee_name','')}]
+        item['assignees'] = [{'id':p['user_id'],'display_name':p['display_name']} for p in assigned]
+        item['assignee_ids'] = [p['user_id'] for p in assigned]
+        if assigned:
+            item['assignee_name'] = ' · '.join(p['display_name'] for p in assigned)
+        item['effective_completed_on'] = item.get('completed_on') or (
+            datetime.fromisoformat(item['completed_at']).astimezone(ZoneInfo('Asia/Seoul')).date().isoformat()
+            if item.get('completed_at') else None)
+        item['report_required'] = bool(item.get('report_required'))
+        item['decision_required'] = bool(item.get('decision_required'))
+    return items
+
+
+def current_assignees(db, old):
+    ids = [r[0] for r in db.execute("SELECT user_id FROM major_task_work_item_people WHERE work_item_id=? ORDER BY sort_order,user_id",(old.get('id',''),))]
+    return ids or ([old['assignee_user_id']] if old.get('assignee_user_id') else [])
+
+
+def set_assignees(db, work_id, ids, actor, now):
+    db.execute("DELETE FROM major_task_work_item_people WHERE work_item_id=?",(work_id,))
+    db.executemany("INSERT INTO major_task_work_item_people VALUES(?,?,?,?,?)",[(work_id,user_id,i,actor,now) for i,user_id in enumerate(ids)])
 
 
 def stage_has_work(db, stage_id):
@@ -99,8 +162,8 @@ SELECT = """SELECT w.*,s.name AS stage_name,t.title AS task_name,t.current_stage
 
 
 def detail_items(db, task_id, today):
-    return [due_projection(row, today) for row in db.execute(
-        SELECT + " WHERE w.task_id=? ORDER BY w.sort_order,w.created_at,w.id", (task_id,))]
+    return project_items(db, db.execute(
+        SELECT + " WHERE w.task_id=? ORDER BY w.created_at DESC,w.id DESC", (task_id,)), today)
 
 
 def contacts(db, task):
@@ -122,10 +185,8 @@ def add_list_summaries(db, items, today):
     # One batch query for the entire page/tree, never one request per Task.
     marks = ",".join("?" for _ in by_id)
     groups = {key: [] for key in by_id}
-    for row in db.execute(SELECT + f" WHERE w.status='open' AND w.task_id IN ({marks}) ORDER BY w.target_due_date IS NULL,w.target_due_date,w.sort_order,w.created_at,w.id", tuple(by_id)):
-        value = due_projection(row, today)
-        if row["stage_id"] == row["current_stage_id"]:
-            groups[row["task_id"]].append(value)
+    for value in project_items(db, db.execute(SELECT + f" WHERE w.status='open' AND w.task_id IN ({marks}) ORDER BY w.target_due_date IS NULL,w.target_due_date,w.created_at DESC,w.id", tuple(by_id)), today):
+        groups[value["task_id"]].append(value)
     for item in flat:
         work = groups[item["id"]]
         item["stage_work_summary"] = {"total": len(work), "items": work[:3]}
@@ -147,7 +208,7 @@ def register(app, get_db, role_required, csrf_required, audit_fn):
         old = dict(old or {})
         content = data.get("content", old.get("content", ""))
         if not isinstance(content, str) or not 1 <= len(content.strip()) <= 1000:
-            raise ValueError("업무내용은 1~1000자로 입력하세요.")
+            raise ValueError("업무는 1~1000자로 입력하세요.")
         ball = data.get("ball_type", old.get("ball_type", "internal"))
         if ball not in BALLS:
             raise ValueError("Ball 값을 확인하세요.")
@@ -178,13 +239,39 @@ def register(app, get_db, role_required, csrf_required, audit_fn):
                     mt._normalized_user_ids(db, [user_id], "세부업무 담당자")
             else:
                 user_id = None
+        old_ids = current_assignees(db, old)
+        if ball == 'buyer':
+            ids = []
+        elif 'assignee_ids' in data:
+            ids = data['assignee_ids']
+            if not isinstance(ids,list) or len(ids)>50 or any(isinstance(i,bool) or not str(i).isdigit() for i in ids):
+                raise ValueError('담당자는 사용자 목록에서 선택하세요.')
+            ids = list(dict.fromkeys(int(i) for i in ids))
+            mt._normalized_user_ids(db,[i for i in ids if i not in old_ids],'세부업무 담당자')
+        elif 'assignee_user_id' in data or not same:
+            ids = [user_id] if user_id else []
+        else:
+            ids = old_ids
+        user_id = ids[0] if ids else None
+        flags = {}
+        for key in ('report_required','decision_required'):
+            value = data.get(key,old.get(key,0))
+            if not isinstance(value,(bool,int)) or value not in (0,1):
+                raise ValueError('보고/의사결정 필요 여부를 확인하세요.')
+            flags[key] = int(value)
+        decision = data.get('decision_request',old.get('decision_request'))
+        if decision is not None and (not isinstance(decision,str) or len(decision)>3000):
+            raise ValueError('의사결정 요청사항은 3000자 이내로 입력하세요.')
+        decision = decision.strip() or None if decision else None
+        if flags['decision_required'] and not decision:
+            raise ValueError('대표님 의사결정 요청사항을 입력하세요.')
         order = data.get("sort_order", old.get("sort_order", 0))
         if isinstance(order, bool) or not isinstance(order, int) or not 0 <= order <= 1000000:
             raise ValueError("정렬순서는 0 이상의 정수여야 합니다.")
         return dict(content=content.strip(), ball_type=ball, assignee_user_id=user_id,
                     contact_id=contact_id, counterparty_name=name,
                     target_due_date=mt._date(data.get("target_due_date", old.get("target_due_date")), "목표기한"),
-                    sort_order=order)
+                    sort_order=order, assignee_ids=ids, decision_request=decision, **flags)
 
     def emit(event, task_id, before, after):
         mt._audit(audit_fn, "MAJOR_TASK_WORK_ITEM_" + event, "major_task", task_id,
@@ -219,8 +306,11 @@ def register(app, get_db, role_required, csrf_required, audit_fn):
         now = mt._now(); work_id = uuid.uuid4().hex
         values.update(id=work_id, task_id=task["id"], stage_id=stage_id, status="open", completed_at=None,
                       version=1, created_by=g.current_user["id"], updated_by=g.current_user["id"], created_at=now, updated_at=now)
+        assigned_ids = values.pop("assignee_ids")
         columns = list(values)
         db.execute(f"INSERT INTO major_task_stage_work_items ({','.join(columns)}) VALUES ({','.join('?' for _ in columns)})", tuple(values.values()))
+        set_assignees(db, work_id, assigned_ids, g.current_user["id"], now)
+        values["assignee_ids"] = assigned_ids
         emit("CREATE", task["id"], None, values)
         db.commit()
         return jsonify(item=values, message="세부업무가 등록되었습니다."), 201
@@ -244,17 +334,26 @@ def register(app, get_db, role_required, csrf_required, audit_fn):
         if not old:
             db.rollback(); return jsonify(error="세부업무를 찾을 수 없습니다."), 404
         old = dict(old)
+        old["assignee_ids"] = current_assignees(db, old)
         if old["version"] != expected:
             db.rollback(); return jsonify(error="다른 사용자가 먼저 수정했습니다. 새로고침 후 확인하세요.", code="VERSION_CONFLICT"), 409
         stage, task = stage_context(db, old["stage_id"])
         if not writable(stage, task):
             db.rollback(); return jsonify(error="활성 업무·Stage에서 수정하세요."), 409
-        if old["status"] == "cancelled" or (operation == "reopen" and old["status"] != "completed") or (operation in (None, "complete", "cancel") and old["status"] != "open"):
+        if old["status"] == "cancelled" or (operation == "reopen" and old["status"] != "completed") or (operation in ("complete", "cancel") and old["status"] != "open"):
             db.rollback(); return jsonify(error="현재 세부업무 상태에서 할 수 없는 변경입니다."), 409
         try:
             if any(k in data and data[k] != old[k] for k in ("id", "task_id", "stage_id")):
                 raise ValueError("세부업무의 Task/Stage/ID는 변경할 수 없습니다.")
             values = validate(db, task, data, old) if operation is None else {}
+            if operation is None and old["status"] == "completed" and any(k not in {"version","report_required","decision_required","decision_request"} for k in data):
+                raise ValueError("완료업무는 보고 준비 항목만 수정할 수 있습니다. 업무 수정은 다시 열기 후 진행하세요.")
+            if operation == 'complete':
+                values['completed_on'] = mt._date(data.get('completed_on') or mt._today().isoformat(),'완료일')
+                if values['completed_on'] > mt._today().isoformat():
+                    raise ValueError('완료일은 오늘 이후로 지정할 수 없습니다.')
+            elif operation in ('reopen','cancel'):
+                values['completed_on'] = None
         except (ValueError, TypeError) as exc:
             db.rollback(); return jsonify(error=str(exc)), 400
         now = mt._now()
@@ -262,13 +361,16 @@ def register(app, get_db, role_required, csrf_required, audit_fn):
             values.update(status={"complete": "completed", "reopen": "open", "cancel": "cancelled"}[operation],
                           completed_at=now if operation == "complete" else None)
         values.update(updated_by=g.current_user["id"], updated_at=now, version=expected+1)
+        assigned_ids = values.pop("assignee_ids", old["assignee_ids"])
         cursor = db.execute(f"UPDATE major_task_stage_work_items SET {','.join(k+'=?' for k in values)} WHERE id=? AND version=?", (*values.values(), work_id, expected))
         if cursor.rowcount != 1:
             db.rollback(); return jsonify(error="동시 수정 충돌", code="VERSION_CONFLICT"), 409
-        after = {**old, **values}
+        if operation is None and assigned_ids != old["assignee_ids"]:
+            set_assignees(db, work_id, assigned_ids, g.current_user["id"], now)
+        after = {**old, **values, "assignee_ids": assigned_ids}
         emit(operation.upper() if operation else "UPDATE", task["id"], old, after)
         if not operation:
-            for event, keys in (("BALL_CHANGE", ["ball_type"]), ("ASSIGNEE_CHANGE", ["assignee_user_id", "contact_id", "counterparty_name"]), ("DUE_CHANGE", ["target_due_date"])):
+            for event, keys in (("BALL_CHANGE", ["ball_type"]), ("ASSIGNEE_CHANGE", ["assignee_ids", "contact_id", "counterparty_name"]), ("DUE_CHANGE", ["target_due_date"]), ("REPORT_FLAG_CHANGE", ["report_required", "decision_required", "decision_request"])):
                 if any(old[k] != after[k] for k in keys):
                     emit(event, task["id"], old, after)
         db.commit()
@@ -290,8 +392,8 @@ def register(app, get_db, role_required, csrf_required, audit_fn):
         tasks = {r["id"]: dict(r) for r in db.execute("SELECT id,title,parent_task_id,section_id FROM major_tasks")}
         sections = {r["id"]: r["name"] for r in db.execute("SELECT id,name FROM major_task_sections")}
         groups = {"overdue": [], "upcoming": []}
-        for row in rows:
-            value = due_projection(row, today); path = []; cursor = tasks.get(row["task_id"]); seen = set(); section_id = None
+        for value in project_items(db, rows, today):
+            path = []; cursor = tasks.get(value["task_id"]); seen = set(); section_id = None
             while cursor and cursor["id"] not in seen:
                 seen.add(cursor["id"]); path.append(cursor["title"]); section_id = cursor["section_id"]; cursor = tasks.get(cursor["parent_task_id"])
             value.update(task_path=" > ".join(reversed(path)), section_id=section_id, section=sections.get(section_id, "미분류"))
