@@ -481,7 +481,7 @@
       form.onchange=e=>{
         if(e.target.name==='completed_on')return;
         if(e.target.name==='ball_type'){w.assignee_ids=[];w.assignee_user_id=null;w.contact_id=null;w.counterparty_name=null;const c=form.querySelector('[name=contact_id]');if(c)c.value='';const n=form.querySelector('[name=counterparty_name]');if(n)n.value='';rememberWork(form);renderWorkItems()}
-        else{rememberWork(form);if(e.target.name==='decision_required'){form.querySelector('.major-work-decision').hidden=!w.decision_required;form.elements.decision_request.required=w.decision_required;}}
+        else{rememberWork(form);if(e.target.name==='decision_required'){const decisionBox=form.querySelector('.major-work-decision'),decisionField=form.querySelector('[name="decision_request"]');if(decisionBox)decisionBox.hidden=!w.decision_required;if(decisionField)decisionField.required=w.decision_required;}}
       };
       form.onsubmit=e=>{e.preventDefault();rememberWork(form);saveWorkForm(form)};
       form.querySelectorAll('[data-work-op]').forEach(b=>b.onclick=()=>{if(b.dataset.workOp==='complete'){form.querySelector('.work-completion-picker').hidden=false;form.elements.completed_on.focus();return}saveWorkForm(form,b.dataset.workOp)});
