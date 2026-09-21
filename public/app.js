@@ -762,16 +762,16 @@ function openPasswordDialog(required = false) {
   state.forcePasswordChange = Boolean(required);
   const dialog = $("#passwordDialog");
   const form = $("#passwordForm");
+  if (!dialog || !form) {
+    toast("비밀번호 변경 화면을 불러오지 못했습니다. 새로고침 후 다시 시도해 주세요.", "error");
+    return;
+  }
   form.reset();
-  state.currentOrderDefaults = null;
-  $("#recordOrderTermsStatus").textContent = "거래처를 선택하면 현재 결제조건과 제품조건을 불러옵니다.";
-  $("#recordOrderTermsStatus").classList.remove("warning-text");
-  form.elements.order_terms_change_reason.required = false;
   $("#passwordError").textContent = "";
   $("#passwordRequiredNotice").classList.toggle("hidden", !required);
   $$(".password-dialog-close").forEach(button => button.classList.toggle("hidden", required));
   if (!dialog.open) dialog.showModal();
-  window.setTimeout(() => form.elements.current_password.focus(), 0);
+  window.setTimeout(() => form.elements.current_password?.focus(), 0);
 }
 
 async function handlePasswordChange(event) {
